@@ -16,6 +16,7 @@ from pydantic import BaseModel
 # Shared payload types
 # ---------------------------------------------------------------------------
 
+
 class QueryPayload(BaseModel):
     sql: str
 
@@ -39,6 +40,7 @@ class WelcomePayload(BaseModel):
 # Inbound messages  (Frontend → Backend)
 # ---------------------------------------------------------------------------
 
+
 class QueryRequest(BaseModel):
     type: Literal["query_request"] = "query_request"
     payload: QueryPayload
@@ -47,6 +49,7 @@ class QueryRequest(BaseModel):
 # ---------------------------------------------------------------------------
 # Outbound messages  (Backend → Frontend)
 # ---------------------------------------------------------------------------
+
 
 class WelcomeMessage(BaseModel):
     type: Literal["welcome"] = "welcome"

@@ -3,6 +3,7 @@ from sqlalchemy import text
 from sqlalchemy.engine import Engine, create_engine
 from .config import settings
 
+
 def get_db_url() -> str:
     """
     Construct the SQLAlchemy database URL from settings.
@@ -10,13 +11,17 @@ def get_db_url() -> str:
     # Using psycopg2-binary for the connection
     return f"postgresql://{settings.postgres_user}:{settings.postgres_password}@{settings.postgres_host}:{settings.postgres_port}/{settings.postgres_db}"
 
+
 def get_engine() -> Engine:
     """
     Create and return a SQLAlchemy engine.
     """
     return create_engine(get_db_url())
 
-def execute_query(query: str, params: Dict[str, Any] | None = None) -> List[Dict[str, Any]]:
+
+def execute_query(
+    query: str, params: Dict[str, Any] | None = None
+) -> List[Dict[str, Any]]:
     """
     Execute a raw SQL query and return the results as a list of dictionaries.
     """
@@ -27,6 +32,7 @@ def execute_query(query: str, params: Dict[str, Any] | None = None) -> List[Dict
         if result.returns_rows:
             return [dict(row._mapping) for row in result]
         return []
+
 
 def get_table_data(table_name: str, limit: int = 100) -> List[Dict[str, Any]]:
     """

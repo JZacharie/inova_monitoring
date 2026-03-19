@@ -25,7 +25,9 @@ class Settings(BaseSettings):
 
     # Application Settings
     debug: bool = Field(default=True, alias="DEBUG")
-    api_secret_key: str = Field(default="change-me-in-production", alias="API_SECRET_KEY")
+    api_secret_key: str = Field(
+        default="change-me-in-production", alias="API_SECRET_KEY"
+    )
 
     model_config = SettingsConfigDict(
         env_file=".env",

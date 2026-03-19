@@ -57,7 +57,9 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
     await websocket.accept()
 
     # Greet the client
-    welcome = WelcomeMessage(payload=WelcomePayload(message="Connected to Inova Monitoring"))
+    welcome = WelcomeMessage(
+        payload=WelcomePayload(message="Connected to Inova Monitoring")
+    )
     await websocket.send_text(welcome.model_dump_json())
 
     try:
@@ -68,7 +70,9 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
                 data = json.loads(raw)
                 msg = QueryRequest.model_validate(data)
             except Exception as parse_err:
-                error = QueryError(payload=ErrorPayload(detail=f"Invalid message: {parse_err}"))
+                error = QueryError(
+                    payload=ErrorPayload(detail=f"Invalid message: {parse_err}")
+                )
                 await websocket.send_text(error.model_dump_json())
                 continue
 
