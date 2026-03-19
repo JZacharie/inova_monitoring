@@ -1,0 +1,31 @@
+version: '3.9'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: inova-pg-prd
+    environment:
+      POSTGRES_DB: inova-sbx
+      POSTGRES_USER: inova_user
+      POSTGRES_PASSWORD: inova_pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./db/mock_data.sql:/docker-entrypoint-initdb.d/mock_data.sql:ro
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "inova_user", "-d", "inova-sbx"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build: .
+    container_name: inova-monitoring
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://inova_user:inova_pass@db:5432/inova-sbx
+    ports:
+      - "8000:8000"
+    command: uv run uvicorn src.inova_monitoring.main:app --host 0.0.0.0 --port 8000
