@@ -3,252 +3,360 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ title }}</title>
-    <meta name="description" content="Inova Apps Monitoring Dashboard - PostgreSQL query interface with real-time WebSocket communication">
+    <title>Inova Monitoring | Control Plane</title>
     <link rel="stylesheet" href="/static/style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        /* Embedded Icons Helper */
+        .icon { width: 20px; height: 20px; vertical-align: middle; }
+    </style>
 </head>
 <body>
-    <header>
-        <h1>Inova Apps Monitoring</h1>
-        <p class="subtitle">Real-time PostgreSQL Query Interface</p>
-        <div id="ws-status" class="ws-badge ws-connecting">
-            <span class="ws-dot"></span>
-            <span id="ws-status-text">Connecting…</span>
+
+    <!-- ── Sidebar Navigation ── -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-toggle" onclick="toggleSidebar()">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
         </div>
-    </header>
-
-    <div class="container">
-        <div id="error-message"></div>
-
-        <nav class="tabs">
-            <button class="tab-btn active" onclick="switchTab('query')">SQL Explorer</button>
-            <button class="tab-btn" onclick="switchTab('analytics')">Advanced Analytics</button>
+        
+        <nav>
+            <a class="nav-item active" onclick="switchSection('dashboards')">
+                <svg class="icon nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                <span class="nav-text">Dashboards</span>
+            </a>
+            <a class="nav-item" onclick="switchSection('explorer')">
+                <svg class="icon nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                <span class="nav-text">SQL Explorer</span>
+            </a>
+            <a class="nav-item">
+                <svg class="icon nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+                <span class="nav-text">Infrastructure</span>
+            </a>
         </nav>
+    </aside>
 
-        <!-- SQL Explorer Section -->
-        <section id="query-section" class="section active">
-            <div class="controls">
-                <input type="text" id="query-input" placeholder="Enter SQL query…" value="SELECT current_database() AS db, current_user AS user, version() AS version;">
-                <button id="run-query" disabled>Execute Query</button>
-            </div>
-
-            <div id="loader" class="loader"></div>
-
-            <div class="table-wrapper">
-                <table id="data-table">
-                    <thead id="table-head"></thead>
-                    <tbody id="table-body">
-                        <tr>
-                            <td colspan="100%" class="empty-state">Waiting for connection…</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-            <div id="row-count" class="row-count"></div>
-        </section>
-
-        <!-- Analytics Dashboard Section -->
-        <section id="analytics-section" class="section">
-            <div class="dashboard-grid">
-                <div class="card" onclick="fetchMetric('daily_users')">
-                    <div class="card-title">Daily Unique Users</div>
-                    <div class="card-description">Active users per day over the last 30 days.</div>
-                    <div id="metric-daily-users" class="metric-val">Click to load</div>
-                </div>
-                <div class="card" onclick="fetchMetric('duration_stats')">
-                    <div class="card-title">Session Durations</div>
-                    <div class="card-description">p50 and p95 distribution for the last 7 days.</div>
-                    <div id="metric-duration-stats" class="metric-val">Click to load</div>
-                </div>
-                <div class="card" onclick="fetchMetric('long_sessions')">
-                    <div class="card-title">Long-Running Sessions</div>
-                    <div class="card-description">Top 10 longest active sessions (stuck terminals).</div>
-                    <div id="metric-long-sessions" class="metric-val">Click to load</div>
-                </div>
-                <div class="card" onclick="fetchMetric('reconnect_loops')">
-                    <div class="card-title">Reconnect Loops</div>
-                    <div class="card-description">Users with frequent short sessions (< 2 min).</div>
-                    <div id="metric-reconnect-loops" class="metric-val">Click to load</div>
-                </div>
+    <main class="main-content" id="main-content">
+        <!-- ── Header (Control Plane) ── -->
+        <header>
+            <div class="breadcrumb">
+                Dashboards > <span>Infrastructure Globale</span>
             </div>
             
-            <!-- Result display for analytics (reuses the table structure) -->
-            <div id="analytics-loader" class="loader"></div>
-            <div id="analytics-result-wrapper" class="table-wrapper" style="display: none;">
-                <table>
-                    <thead id="analytics-head"></thead>
-                    <tbody id="analytics-body"></tbody>
-                </table>
+            <div class="header-actions">
+                <select class="env-selector">
+                    <option>Production</option>
+                    <option>Staging</option>
+                    <option>Development</option>
+                </select>
+                
+                <div class="global-status">
+                    <div class="status-dot"></div>
+                    All Systems Operational
+                </div>
+                
+                <div id="ws-badge" class="badge" style="background: #E0E7FF; color: #4338CA;">WS: Connecting…</div>
             </div>
-        </section>
+        </header>
+
+        <!-- ── Dashboard Viewport ── -->
+        <div class="dashboard-viewport" id="section-dashboards">
+            <div class="monitoring-grid">
+                
+                <!-- Prometheus Widget -->
+                <div class="card" onclick="openDrawer('Prometheus Latency')">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="#0066CC" stroke-width="2"><path d="M12 2v20M2 12h20"/></svg>
+                            Prometheus
+                        </div>
+                        <span class="badge success">Healthy</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="metric-group">
+                            <div class="metric">
+                                <span class="metric-label">Latency</span>
+                                <span class="metric-value rolling-num" id="prom-latency">42</span><span style="font-size: 0.8rem; color: var(--text-muted)">ms</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-label">Error Rate</span>
+                                <span class="metric-value" id="prom-errors">0.02</span><span style="font-size: 0.8rem; color: var(--text-muted)">%</span>
+                            </div>
+                        </div>
+                        <div class="sparkline-container" id="prom-spark" onclick="filterByLatency(event)">
+                            <svg width="100%" height="100%" viewBox="0 0 200 60" style="cursor: pointer;">
+                                <path class="sparkline-path" d="M0,50 L20,40 L40,45 L60,30 L80,35 L100,20 L120,25 L140,15 L160,20 L180,10 L200,15" />
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SQL Database Widget -->
+                <div class="card" onclick="openDrawer('SQL Connections')">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="#0066CC" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+                            SQL Database
+                        </div>
+                        <span class="badge success">Healthy</span>
+                    </div>
+                    <div class="card-body" style="flex-direction: row; align-items: center; justify-content: space-between;">
+                        <div class="metric">
+                            <span class="metric-label">Active Conn.</span>
+                            <span class="metric-value rolling-num" id="db-conns">124</span>
+                        </div>
+                        <div class="gauge-container">
+                            <svg viewBox="0 0 36 36" style="width: 80px; height: 80px;">
+                                <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#E5E7EB" stroke-width="3"/>
+                                <path id="db-gauge" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="var(--primary)" stroke-width="3" stroke-dasharray="75, 100"/>
+                                <text x="18" y="20.35" text-anchor="middle" font-size="8" font-weight="800">75%</text>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- RabbitMQ Widget -->
+                <div class="card" onclick="openDrawer('RabbitMQ Queues')">
+                    <div class="card-header">
+                        <div class="card-title">RabbitMQ</div>
+                        <span class="badge success">Healthy</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="metric-group">
+                            <div class="metric">
+                                <span class="metric-label">Ready</span>
+                                <span class="metric-value rolling-num" id="rb-ready">1240</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-label">Rate</span>
+                                <span class="metric-value" id="rb-rate">450</span><span style="font-size: 0.8rem; color: var(--text-muted)">msg/s</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Users Widget -->
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">User sessions</div>
+                    </div>
+                    <div class="card-body">
+                        <div class="metric">
+                            <span class="metric-label">Live Users</span>
+                            <span class="metric-value rolling-num" style="color: var(--primary); font-family: monospace; font-size: 2.5rem;" id="user-live">892</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- ── SQL Explorer Viewport (Legacy integration) ── -->
+        <div class="dashboard-viewport" id="section-explorer" style="display: none;">
+             <div class="card">
+                <div class="card-header">
+                    <div class="card-title">Query Console</div>
+                </div>
+                <div class="card-body">
+                    <div style="display: flex; gap: 12px; margin-bottom: 20px;">
+                        <input type="text" id="query-input" style="flex: 1; padding: 10px; border: 1px solid var(--border); border-radius: var(--radius);" value="SELECT current_database(), now();">
+                        <button id="run-query" style="background: var(--primary); color: white; padding: 0 20px; border: none; border-radius: var(--radius); cursor: pointer; font-weight: 600;">Execute</button>
+                    </div>
+                    <div id="query-result-wrapper" style="overflow-x: auto;">
+                        <table style="width: 100%; border-collapse: collapse;">
+                            <thead id="table-head"></thead>
+                            <tbody id="table-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+             </div>
+        </div>
+    </main>
+
+    <!-- ── Interaction Layers ── -->
+    <div class="overlay" id="overlay" onclick="closeDrawer()"></div>
+    <div class="drawer" id="drawer">
+        <h2 id="drawer-title" style="margin-bottom: 20px;">Details</h2>
+        <div id="drawer-content" style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.6;">
+            <p>Loading drill-down data for OpenShift 2026 panel...</p>
+        </div>
+        <button onclick="closeDrawer()" style="margin-top: 40px; background: none; border: 1px solid var(--border); padding: 8px 16px; border-radius: 4px; cursor: pointer;">Close Panel</button>
     </div>
 
     <script>
-        const queryInput  = document.getElementById('query-input');
-        const runButton   = document.getElementById('run-query');
-        const tableHead   = document.getElementById('table-head');
-        const tableBody   = document.getElementById('table-body');
-        const loader      = document.getElementById('loader');
-        const errorMsg    = document.getElementById('error-message');
-        const wsBadge     = document.getElementById('ws-status');
-        const wsText      = document.getElementById('ws-status-text');
-        const rowCount    = document.getElementById('row-count');
-
+        // ── State ──────────────────────────────────────────────────
         let socket = null;
+        const metrics = {
+            'prom-latency': 42,
+            'rb-ready': 1240,
+            'db-conns': 124,
+            'user-live': 892
+        };
 
-        // ── WebSocket lifecycle ──────────────────────────────────────────
+        // ── Navigation ────────────────────────────────────────────────
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('collapsed');
+            document.getElementById('main-content').classList.toggle('expanded');
+        }
+
+        function switchSection(section) {
+            document.querySelectorAll('.dashboard-viewport').forEach(v => v.style.display = 'none');
+            document.getElementById(`section-${section}`).style.display = 'block';
+            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+            const btn = document.querySelector(`[onclick*="${section}"]`);
+            if (btn) btn.classList.add('active');
+        }
+
+        function openDrawer(title) {
+            const drawer = document.getElementById('drawer');
+            const overlay = document.getElementById('overlay');
+            const content = document.getElementById('drawer-content');
+            
+            document.getElementById('drawer-title').textContent = title;
+            
+            // Contextual Drill-down Content
+            if (title.includes('Prometheus')) {
+                content.innerHTML = `
+                    <div class="metric-row"><strong>Avg Latency:</strong> 42.4ms</div>
+                    <div class="metric-row"><strong>P99 Latency:</strong> 120.1ms</div>
+                    <div class="metric-row"><strong>Active Scrapes:</strong> 12</div>
+                    <div style="margin-top:20px; height:100px; background:#F9FAFB; border-radius:4px; border:1px dashed #CCC; display:flex; align-items:center; justify-content:center;">Graph Detail View</div>
+                `;
+            } else if (title.includes('SQL')) {
+                content.innerHTML = `
+                    <div class="metric-row"><strong>Max Connections:</strong> 500</div>
+                    <div class="metric-row"><strong>Cache Hit Ratio:</strong> 99.2%</div>
+                    <div class="metric-row"><strong>Slow Queries:</strong> 3 (last 1h)</div>
+                `;
+            } else if (title.includes('RabbitMQ')) {
+                content.innerHTML = `
+                    <div class="metric-row"><strong>Queues:</strong> 24</div>
+                    <div class="metric-row"><strong>Consumers:</strong> 156</div>
+                    <div class="metric-row"><strong>Unacked:</strong> 12</div>
+                `;
+            }
+
+            drawer.classList.add('open');
+            overlay.classList.add('visible');
+        }
+
+        function closeDrawer() {
+            document.getElementById('drawer').classList.remove('open');
+            document.getElementById('overlay').classList.remove('visible');
+        }
+
+        // ── WebSocket & SQL Explorer ─────────────────────────────────
         function connect() {
             const proto = location.protocol === 'https:' ? 'wss' : 'ws';
             socket = new WebSocket(`${proto}://${location.host}/ws`);
+            
+            socket.onopen = () => { 
+                document.getElementById('ws-badge').textContent = 'Live Connection';
+                document.getElementById('ws-badge').style.background = '#DCFCE7';
+                document.getElementById('ws-badge').style.color = '#166534';
+            };
+            
+            socket.onmessage = (e) => { 
+                const msg = JSON.parse(e.data);
+                if (msg.type === 'query_result') renderTable(msg.payload);
+                if (msg.type === 'query_error') alert('Query Error: ' + msg.payload.detail);
+            };
 
-            socket.onopen = () => setStatus('connected');
-            socket.onmessage = (e) => dispatch(JSON.parse(e.data));
             socket.onclose = () => {
-                setStatus('reconnecting');
-                runButton.disabled = true;
+                document.getElementById('ws-badge').textContent = 'Reconnecting…';
+                document.getElementById('ws-badge').style.background = '#FEF3C7';
+                document.getElementById('ws-badge').style.color = '#92400E';
                 setTimeout(connect, 3000);
             };
-            socket.onerror = () => socket.close();
         }
 
-        // ── Message dispatcher ───────────────────────────────────────────
-        function dispatch(msg) {
-            switch (msg.type) {
-                case 'welcome':
-                    setStatus('connected');
-                    runButton.disabled = false;
-                    tableBody.innerHTML = `<tr><td colspan="100%" class="empty-state">${msg.payload.message} · v${msg.payload.version}</td></tr>`;
-                    break;
-                case 'query_result':
-                    renderResult(msg.payload);
-                    break;
-                case 'query_error':
-                    showError(msg.payload.detail);
-                    break;
-            }
-        }
-
-        // ── Navigation & Interactions ────────────────────────────────────
-        function switchTab(tab) {
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+        function renderTable({ columns, rows }) {
+            const head = document.getElementById('table-head');
+            const body = document.getElementById('table-body');
+            head.innerHTML = ''; body.innerHTML = '';
             
-            const btn = document.querySelector(`.tab-btn[onclick*="${tab}"]`);
-            if (btn) btn.classList.add('active');
-            document.getElementById(`${tab}-section`).classList.add('active');
-        }
-
-        function fetchMetric(metric) {
-            if (!socket || socket.readyState !== WebSocket.OPEN) return;
-
-            const aLoader = document.getElementById('analytics-loader');
-            const aWrapper = document.getElementById('analytics-result-wrapper');
-            const aHead = document.getElementById('analytics-head');
-            const aBody = document.getElementById('analytics-body');
-
-            aLoader.style.display = 'block';
-            aWrapper.style.display = 'none';
-            aHead.innerHTML = '';
-            aBody.innerHTML = '';
-
-            socket.send(JSON.stringify({
-                type: 'analytics_request',
-                payload: { metric }
-            }));
-        }
-
-        function sendQuery() {
-            const sql = queryInput.value.trim();
-            if (!sql || !socket || socket.readyState !== WebSocket.OPEN) return;
-
-            errorMsg.style.display = 'none';
-            rowCount.textContent = '';
-            loader.style.display = 'block';
-            tableHead.innerHTML = '';
-            tableBody.innerHTML = '';
-            runButton.disabled = true;
-
-            socket.send(JSON.stringify({ type: 'query_request', payload: { sql } }));
-        }
-
-        // ── Rendering ────────────────────────────────────────────────────
-        function renderResult({ columns, rows, row_count }) {
-            const isAnalytics = document.getElementById('analytics-section').classList.contains('active');
-            
-            const currentLoader = isAnalytics ? document.getElementById('analytics-loader') : loader;
-            const currentHead = isAnalytics ? document.getElementById('analytics-head') : tableHead;
-            const currentBody = isAnalytics ? document.getElementById('analytics-body') : tableBody;
-            const currentWrapper = isAnalytics ? document.getElementById('analytics-result-wrapper') : null;
-
-            currentLoader.style.display = 'none';
-            if (currentWrapper) currentWrapper.style.display = 'block';
-            runButton.disabled = false;
-
             if (!columns.length) {
-                currentBody.innerHTML = `<tr><td colspan="100%" class="empty-state">No results.</td></tr>`;
+                body.innerHTML = '<tr><td colspan="100%" style="text-align:center; padding:40px; color:#6B7280;">No results.</td></tr>';
                 return;
             }
 
-            // Generate Header
-            const headRow = document.createElement('tr');
-            columns.forEach(col => {
+            const trH = document.createElement('tr');
+            columns.forEach(c => {
                 const th = document.createElement('th');
-                th.textContent = col.replace(/_/g, ' ');
-                headRow.appendChild(th);
+                th.textContent = c.replace(/_/g, ' ');
+                th.style.padding = '12px'; th.style.textAlign = 'left'; th.style.borderBottom = '1px solid var(--border)';
+                th.style.fontSize = '0.75rem'; th.style.color = 'var(--text-muted)'; th.style.textTransform = 'uppercase';
+                trH.appendChild(th);
             });
-            currentHead.appendChild(headRow);
-
-            // Generate Rows
-            rows.forEach((row, i) => {
+            head.appendChild(trH);
+            
+            rows.forEach((r, i) => {
                 const tr = document.createElement('tr');
-                tr.style.animationDelay = `${i * 30}ms`;
-                tr.classList.add('fade-in');
-                columns.forEach(col => {
+                columns.forEach(c => {
                     const td = document.createElement('td');
-                    let val = row[col];
-                    if (val === null) val = 'NULL';
-                    else if (typeof val === 'object' && !Array.isArray(val)) val = formatInterval(val);
-                    td.textContent = val;
+                    td.textContent = r[c] ?? 'NULL';
+                    td.style.padding = '12px'; td.style.borderBottom = '1px solid var(--border)';
                     tr.appendChild(td);
                 });
-                currentBody.appendChild(tr);
+                body.appendChild(tr);
             });
+        }
 
-            if (!isAnalytics) {
-                rowCount.textContent = `${row_count} row${row_count === 1 ? '' : 's'} returned`;
+        // ── Micro-Animations ─────────────────────────────────────────
+        function animateValue(id, start, end, duration) {
+            const obj = document.getElementById(id);
+            if (!obj) return;
+            const range = end - start;
+            const stepTime = Math.abs(Math.floor(duration / range));
+            let startTime = new Date().getTime();
+            let endTime = startTime + duration;
+            let timer;
+
+            function run() {
+                let now = new Date().getTime();
+                let remaining = Math.max((endTime - now) / duration, 0);
+                let value = Math.round(end - (remaining * range));
+                obj.innerHTML = value;
+                if (value == end) clearInterval(timer);
             }
+            timer = setInterval(run, stepTime || 10);
+            run();
         }
 
-        function formatInterval(val) {
-            const parts = [];
-            if (val.days)    parts.push(`${val.days}d`);
-            if (val.hours)   parts.push(`${val.hours}h`);
-            if (val.minutes) parts.push(`${val.minutes}m`);
-            if (val.seconds) parts.push(`${Math.floor(val.seconds)}s`);
-            return parts.join(' ') || '0s';
+        function simulateMetrics() {
+            // Random walk for metrics
+            for (let key in metrics) {
+                const oldVal = metrics[key];
+                const delta = Math.floor(Math.random() * 10) - 4;
+                const newVal = Math.max(0, oldVal + delta);
+                animateValue(key, oldVal, newVal, 1000);
+                metrics[key] = newVal;
+            }
+
+            // Update DB Gauge
+            const dash = Math.floor(Math.random() * 30) + 60;
+            document.getElementById('db-gauge').setAttribute('stroke-dasharray', `${dash}, 100`);
+            
+            setTimeout(simulateMetrics, 5000);
         }
 
-        function showError(detail) {
-            loader.style.display = 'none';
-            document.getElementById('analytics-loader').style.display = 'none';
-            runButton.disabled = false;
-            errorMsg.textContent = '⚠ ' + detail;
-            errorMsg.style.display = 'block';
+        function filterByLatency(e) {
+            e.stopPropagation(); // Avoid opening drawer
+            switchSection('explorer');
+            document.getElementById('query-input').value = "SELECT * FROM vsessioninfo WHERE logontime > NOW() - INTERVAL '1 hour' ORDER BY logontime DESC LIMIT 50;";
+            document.getElementById('run-query').click();
         }
 
-        function setStatus(state) {
-            wsBadge.className = `ws-badge ws-${state}`;
-            wsText.textContent = { connected: 'Connected', connecting: 'Connecting…', reconnecting: 'Reconnecting…' }[state] ?? state;
-        }
-
-        // ── Event bindings ───────────────────────────────────────────────
-        runButton.addEventListener('click', sendQuery);
-        queryInput.addEventListener('keydown', e => { if (e.key === 'Enter') sendQuery(); });
-
+        // ── Boot ──
         connect();
+        simulateMetrics();
+        document.getElementById('run-query').onclick = () => {
+             const sql = document.getElementById('query-input').value;
+             if (socket && socket.readyState === WebSocket.OPEN) {
+                 socket.send(JSON.stringify({ type: 'query_request', payload: { sql } }));
+             }
+        };
     </script>
 </body>
 </html>
