@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ title }}</title>
+    <meta name="description" content="Inova Apps Monitoring Dashboard - PostgreSQL query interface with real-time WebSocket communication">
     <link rel="stylesheet" href="/static/style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -12,15 +13,19 @@
 <body>
     <header>
         <h1>Inova Apps Monitoring</h1>
-        <p class="subtitle">Instance Overview & PostgreSQL Query Interface</p>
+        <p class="subtitle">Real-time PostgreSQL Query Interface</p>
+        <div id="ws-status" class="ws-badge ws-connecting">
+            <span class="ws-dot"></span>
+            <span id="ws-status-text">Connecting…</span>
+        </div>
     </header>
 
     <div class="container">
         <div id="error-message"></div>
 
         <div class="controls">
-            <input type="text" id="query-input" placeholder="Enter SQL query (e.g., SELECT * FROM users LIMIT 5)" value="SELECT current_database(), current_user, version();">
-            <button id="run-query">Execute Query</button>
+            <input type="text" id="query-input" placeholder="Enter SQL query…" value="SELECT current_database() AS db, current_user AS user, version() AS version;">
+            <button id="run-query" disabled>Execute Query</button>
         </div>
 
         <div id="loader" class="loader"></div>
@@ -30,79 +35,146 @@
                 <thead id="table-head"></thead>
                 <tbody id="table-body">
                     <tr>
-                        <td colspan="100%" style="text-align: center; color: var(--text-muted); padding: 3rem;">
-                            Click "Execute Query" to see data
-                        </td>
+                        <td colspan="100%" class="empty-state">Waiting for connection…</td>
                     </tr>
                 </tbody>
             </table>
         </div>
+        <div id="row-count" class="row-count"></div>
     </div>
 
     <script>
-        const queryInput = document.getElementById('query-input');
-        const runButton = document.getElementById('run-query');
-        const tableHead = document.getElementById('table-head');
-        const tableBody = document.getElementById('table-body');
-        const loader = document.getElementById('loader');
-        const errorMessage = document.getElementById('error-message');
+        const queryInput  = document.getElementById('query-input');
+        const runButton   = document.getElementById('run-query');
+        const tableHead   = document.getElementById('table-head');
+        const tableBody   = document.getElementById('table-body');
+        const loader      = document.getElementById('loader');
+        const errorMsg    = document.getElementById('error-message');
+        const wsBadge     = document.getElementById('ws-status');
+        const wsText      = document.getElementById('ws-status-text');
+        const rowCount    = document.getElementById('row-count');
 
-        async function fetchData() {
-            const query = queryInput.value;
-            
-            // UI State
-            errorMessage.style.display = 'none';
-            loader.style.display = 'block';
-            tableBody.innerHTML = '';
-            tableHead.innerHTML = '';
+        let socket = null;
 
-            try {
-                const response = await fetch(`/api/data?query=${encodeURIComponent(query)}`);
-                const result = await response.json();
+        // ── WebSocket lifecycle ──────────────────────────────────────────
+        function connect() {
+            const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+            socket = new WebSocket(`${proto}://${location.host}/ws`);
 
-                if (!result.success) {
-                    throw new Error(result.error);
-                }
+            socket.onopen = () => {
+                setStatus('connected');
+            };
 
-                const data = result.data;
+            socket.onmessage = (event) => {
+                const msg = JSON.parse(event.data);
+                dispatch(msg);
+            };
 
-                if (data.length === 0) {
-                    tableBody.innerHTML = '<tr><td colspan="100%" style="text-align: center; padding: 3rem;">No results found</td></tr>';
-                } else {
-                    // Build headers
-                    const headers = Object.keys(data[0]);
-                    const headRow = document.createElement('tr');
-                    headers.forEach(header => {
-                        const th = document.createElement('th');
-                        th.textContent = header;
-                        headRow.appendChild(th);
-                    });
-                    tableHead.appendChild(headRow);
+            socket.onclose = () => {
+                setStatus('reconnecting');
+                runButton.disabled = true;
+                setTimeout(connect, 3000);   // auto-reconnect
+            };
 
-                    // Build rows
-                    data.forEach(row => {
-                        const tr = document.createElement('tr');
-                        headers.forEach(header => {
-                            const td = document.createElement('td');
-                            td.textContent = row[header];
-                            tr.appendChild(td);
-                        });
-                        tableBody.appendChild(tr);
-                    });
-                }
-            } catch (error) {
-                errorMessage.textContent = 'Error: ' + error.message;
-                errorMessage.style.display = 'block';
-                tableBody.innerHTML = '<tr><td colspan="100%" style="text-align: center; padding: 3rem; color: #ef4444;">Query failed</td></tr>';
-            } finally {
-                loader.style.display = 'none';
+            socket.onerror = () => {
+                socket.close();
+            };
+        }
+
+        // ── Message dispatcher (hexagonal protocol) ──────────────────────
+        function dispatch(msg) {
+            switch (msg.type) {
+                case 'welcome':
+                    setStatus('connected');
+                    runButton.disabled = false;
+                    tableBody.innerHTML = `<tr><td colspan="100%" class="empty-state">${msg.payload.message} · v${msg.payload.version}</td></tr>`;
+                    break;
+
+                case 'query_result':
+                    renderResult(msg.payload);
+                    break;
+
+                case 'query_error':
+                    showError(msg.payload.detail);
+                    break;
+
+                default:
+                    console.warn('Unknown message type:', msg.type);
             }
         }
 
-        runButton.addEventListener('click', fetchData);
+        // ── Send a query_request envelope ────────────────────────────────
+        function sendQuery() {
+            const sql = queryInput.value.trim();
+            if (!sql || !socket || socket.readyState !== WebSocket.OPEN) return;
 
-        // Initial fetch
-        fetchData();
+            errorMsg.style.display = 'none';
+            rowCount.textContent = '';
+            loader.style.display = 'block';
+            tableHead.innerHTML = '';
+            tableBody.innerHTML = '';
+            runButton.disabled = true;
+
+            socket.send(JSON.stringify({
+                type:    'query_request',
+                payload: { sql }
+            }));
+        }
+
+        // ── Render helpers ────────────────────────────────────────────────
+        function renderResult({ columns, rows, row_count }) {
+            loader.style.display = 'none';
+            runButton.disabled = false;
+
+            if (!columns.length) {
+                tableBody.innerHTML = `<tr><td colspan="100%" class="empty-state">Query returned no results.</td></tr>`;
+                return;
+            }
+
+            // Header
+            const headRow = document.createElement('tr');
+            columns.forEach(col => {
+                const th = document.createElement('th');
+                th.textContent = col;
+                headRow.appendChild(th);
+            });
+            tableHead.appendChild(headRow);
+
+            // Rows — animate each row in with a stagger
+            rows.forEach((row, i) => {
+                const tr = document.createElement('tr');
+                tr.style.animationDelay = `${i * 30}ms`;
+                tr.classList.add('fade-in');
+                columns.forEach(col => {
+                    const td = document.createElement('td');
+                    td.textContent = row[col] ?? 'NULL';
+                    tr.appendChild(td);
+                });
+                tableBody.appendChild(tr);
+            });
+
+            rowCount.textContent = `${row_count} row${row_count === 1 ? '' : 's'} returned`;
+        }
+
+        function showError(detail) {
+            loader.style.display = 'none';
+            runButton.disabled = false;
+            errorMsg.textContent = '⚠ ' + detail;
+            errorMsg.style.display = 'block';
+            tableBody.innerHTML = `<tr><td colspan="100%" class="empty-state error-state">Query failed.</td></tr>`;
+        }
+
+        function setStatus(state) {
+            wsBadge.className = `ws-badge ws-${state}`;
+            wsText.textContent = { connected: 'Connected', connecting: 'Connecting…', reconnecting: 'Reconnecting…' }[state] ?? state;
+        }
+
+        // ── Event bindings ────────────────────────────────────────────────
+        runButton.addEventListener('click', sendQuery);
+        queryInput.addEventListener('keydown', e => { if (e.key === 'Enter') sendQuery(); });
+
+        // Boot
+        connect();
     </script>
 </body>
 </html>

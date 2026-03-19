@@ -7,6 +7,9 @@
     --text-main: #f8fafc;
     --text-muted: #94a3b8;
     --accent: #10b981;
+    --ws-connected: #10b981;
+    --ws-connecting: #f59e0b;
+    --ws-reconnecting: #ef4444;
 }
 
 * {
@@ -40,6 +43,7 @@ h1 {
     margin-bottom: 0.5rem;
     background: linear-gradient(to right, #818cf8, #34d399);
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
 }
 
@@ -176,4 +180,73 @@ tr:hover td {
     border-radius: 0.75rem;
     margin-bottom: 2rem;
     display: none;
+}
+
+button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* WebSocket status badge */
+.ws-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+    padding: 0.35rem 1rem;
+    border-radius: 9999px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border);
+    transition: color 0.3s;
+}
+
+.ws-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: currentColor;
+    animation: pulse 2s infinite;
+}
+
+.ws-connected  { color: var(--ws-connected); }
+.ws-connecting { color: var(--ws-connecting); }
+.ws-reconnecting { color: var(--ws-reconnecting); }
+
+/* Row count */
+.row-count {
+    text-align: right;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-top: 0.75rem;
+    min-height: 1.5em;
+}
+
+/* Empty state cell */
+.empty-state {
+    text-align: center;
+    color: var(--text-muted);
+    padding: 3rem;
+}
+
+.error-state {
+    color: #ef4444;
+}
+
+/* Fade-in rows */
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in {
+    animation: fadeInUp 0.25s ease forwards;
+    opacity: 0;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.4; }
 }

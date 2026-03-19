@@ -1,39 +1,98 @@
+"""
+FastAPI application — serves the dashboard and a WebSocket endpoint.
+
+WebSocket message flow
+    Client → { type: "query_request", payload: { sql: "..." } }
+    Server → { type: "query_result",  payload: { columns, rows, row_count } }
+    Server → { type: "query_error",   payload: { detail: "..." } }
+    Server → { type: "welcome",       payload: { message, version } }
+"""
+
+from __future__ import annotations
+
+import json
 from pathlib import Path
-from fastapi import FastAPI, Request
+
+from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+
 from .database import execute_query
+from .messages import (
+    ErrorPayload,
+    QueryError,
+    QueryRequest,
+    QueryResult,
+    QueryResultPayload,
+    WelcomeMessage,
+    WelcomePayload,
+)
 
-app = FastAPI(title="Inova Monitoring")
+app = FastAPI(title="Inova Monitoring", version="0.1.0")
 
-# Setup templates and static files
 BASE_DIR = Path(__file__).parent
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
 
+
 @app.get("/", response_class=HTMLResponse)
-async def read_root(request: Request):
-    """
-    Render the dashboard index page.
-    """
+async def read_root(request: Request) -> HTMLResponse:
+    """Render the monitoring dashboard."""
     return templates.TemplateResponse(
         "index.html",
-        {"request": request, "title": "Inova Apps Interface"},
+        {"request": request, "title": "Inova Apps Monitoring"},
     )
 
-@app.get("/api/data")
-async def get_data(query: str = "SELECT current_database(), current_user, version();"):
+
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket) -> None:
     """
-    API endpoint to execute a query and return JSON results.
-    Default query returns basic DB info.
+    Persistent WebSocket endpoint.
+
+    Message protocol (hexagonal envelopes):
+      IN  → QueryRequest
+      OUT → WelcomeMessage | QueryResult | QueryError
     """
+    await websocket.accept()
+
+    # Greet the client
+    welcome = WelcomeMessage(payload=WelcomePayload(message="Connected to Inova Monitoring"))
+    await websocket.send_text(welcome.model_dump_json())
+
     try:
-        results = execute_query(query)
-        return {"success": True, "data": results}
-    except Exception as e:
-        return {"success": False, "error": str(e)}
+        while True:
+            raw = await websocket.receive_text()
+
+            try:
+                data = json.loads(raw)
+                msg = QueryRequest.model_validate(data)
+            except Exception as parse_err:
+                error = QueryError(payload=ErrorPayload(detail=f"Invalid message: {parse_err}"))
+                await websocket.send_text(error.model_dump_json())
+                continue
+
+            # Execute the SQL query
+            try:
+                rows = execute_query(msg.payload.sql)
+                columns = list(rows[0].keys()) if rows else []
+                result = QueryResult(
+                    payload=QueryResultPayload(
+                        columns=columns,
+                        rows=rows,
+                        row_count=len(rows),
+                    )
+                )
+                await websocket.send_text(result.model_dump_json())
+            except Exception as db_err:
+                error = QueryError(payload=ErrorPayload(detail=str(db_err)))
+                await websocket.send_text(error.model_dump_json())
+
+    except WebSocketDisconnect:
+        pass
+
 
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(app, host="0.0.0.0", port=8000)
