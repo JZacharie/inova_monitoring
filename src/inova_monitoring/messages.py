@@ -21,6 +21,10 @@ class QueryPayload(BaseModel):
     sql: str
 
 
+class AnalyticsPayload(BaseModel):
+    metric: Literal["daily_users", "duration_stats", "long_sessions", "reconnect_loops"]
+
+
 class QueryResultPayload(BaseModel):
     columns: list[str]
     rows: list[dict[str, Any]]
@@ -46,6 +50,11 @@ class QueryRequest(BaseModel):
     payload: QueryPayload
 
 
+class AnalyticsRequest(BaseModel):
+    type: Literal["analytics_request"] = "analytics_request"
+    payload: AnalyticsPayload
+
+
 # ---------------------------------------------------------------------------
 # Outbound messages  (Backend → Frontend)
 # ---------------------------------------------------------------------------
@@ -67,5 +76,5 @@ class QueryError(BaseModel):
 
 
 # Union helpers for dispatch
-InboundMessage = QueryRequest
+InboundMessage = QueryRequest | AnalyticsRequest
 OutboundMessage = WelcomeMessage | QueryResult | QueryError

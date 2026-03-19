@@ -20,6 +20,7 @@ from fastapi.templating import Jinja2Templates
 
 from .database import execute_query
 from .messages import (
+    AnalyticsRequest,
     ErrorPayload,
     QueryError,
     QueryRequest,
@@ -68,7 +69,26 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
 
             try:
                 data = json.loads(raw)
-                msg = QueryRequest.model_validate(data)
+                # Dispatch based on type
+                msg_type = data.get("type")
+                if msg_type == "query_request":
+                    msg = QueryRequest.model_validate(data)
+                    sql = msg.payload.sql
+                elif msg_type == "analytics_request":
+                    msg = AnalyticsRequest.model_validate(data)
+                    # Map metric names to materialized views
+                    metric_map = {
+                        "daily_users": "SELECT * FROM daily_unique_users",
+                        "duration_stats": "SELECT * FROM session_duration_stats",
+                        "long_sessions": "SELECT * FROM top_long_sessions",
+                        "reconnect_loops": "SELECT * FROM reconnect_loops",
+                    }
+                    sql = metric_map.get(msg.payload.metric)
+                    if not sql:
+                        raise ValueError(f"Unknown metric: {msg.payload.metric}")
+                else:
+                    raise ValueError(f"Unknown message type: {msg_type}")
+
             except Exception as parse_err:
                 error = QueryError(
                     payload=ErrorPayload(detail=f"Invalid message: {parse_err}")
@@ -78,7 +98,7 @@ async def websocket_endpoint(websocket: WebSocket) -> None:
 
             # Execute the SQL query
             try:
-                rows = execute_query(msg.payload.sql)
+                rows = execute_query(sql)
                 columns = list(rows[0].keys()) if rows else []
                 result = QueryResult(
                     payload=QueryResultPayload(

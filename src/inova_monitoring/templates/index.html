@@ -23,24 +23,67 @@
     <div class="container">
         <div id="error-message"></div>
 
-        <div class="controls">
-            <input type="text" id="query-input" placeholder="Enter SQL query…" value="SELECT current_database() AS db, current_user AS user, version() AS version;">
-            <button id="run-query" disabled>Execute Query</button>
-        </div>
+        <nav class="tabs">
+            <button class="tab-btn active" onclick="switchTab('query')">SQL Explorer</button>
+            <button class="tab-btn" onclick="switchTab('analytics')">Advanced Analytics</button>
+        </nav>
 
-        <div id="loader" class="loader"></div>
+        <!-- SQL Explorer Section -->
+        <section id="query-section" class="section active">
+            <div class="controls">
+                <input type="text" id="query-input" placeholder="Enter SQL query…" value="SELECT current_database() AS db, current_user AS user, version() AS version;">
+                <button id="run-query" disabled>Execute Query</button>
+            </div>
 
-        <div class="table-wrapper">
-            <table id="data-table">
-                <thead id="table-head"></thead>
-                <tbody id="table-body">
-                    <tr>
-                        <td colspan="100%" class="empty-state">Waiting for connection…</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-        <div id="row-count" class="row-count"></div>
+            <div id="loader" class="loader"></div>
+
+            <div class="table-wrapper">
+                <table id="data-table">
+                    <thead id="table-head"></thead>
+                    <tbody id="table-body">
+                        <tr>
+                            <td colspan="100%" class="empty-state">Waiting for connection…</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div id="row-count" class="row-count"></div>
+        </section>
+
+        <!-- Analytics Dashboard Section -->
+        <section id="analytics-section" class="section">
+            <div class="dashboard-grid">
+                <div class="card" onclick="fetchMetric('daily_users')">
+                    <div class="card-title">Daily Unique Users</div>
+                    <div class="card-description">Active users per day over the last 30 days.</div>
+                    <div id="metric-daily-users" class="metric-val">Click to load</div>
+                </div>
+                <div class="card" onclick="fetchMetric('duration_stats')">
+                    <div class="card-title">Session Durations</div>
+                    <div class="card-description">p50 and p95 distribution for the last 7 days.</div>
+                    <div id="metric-duration-stats" class="metric-val">Click to load</div>
+                </div>
+                <div class="card" onclick="fetchMetric('long_sessions')">
+                    <div class="card-title">Long-Running Sessions</div>
+                    <div class="card-description">Top 10 longest active sessions (stuck terminals).</div>
+                    <div id="metric-long-sessions" class="metric-val">Click to load</div>
+                </div>
+                <div class="card" onclick="fetchMetric('reconnect_loops')">
+                    <div class="card-title">Reconnect Loops</div>
+                    <div class="card-description">Users with frequent short sessions (< 2 min).</div>
+                    <div id="metric-reconnect-loops" class="metric-val">Click to load</div>
+                </div>
+            </div>
+            
+            <!-- Result display for analytics (reuses the table structure) -->
+            <div id="analytics-loader" class="loader"></div>
+            <div id="analytics-result-wrapper" class="table-wrapper" style="display: none;">
+                <table>
+                    <thead id="analytics-head"></thead>
+                    <tbody id="analytics-body"></tbody>
+                </table>
+            </div>
+        </section>
     </div>
 
     <script>
@@ -61,27 +104,17 @@
             const proto = location.protocol === 'https:' ? 'wss' : 'ws';
             socket = new WebSocket(`${proto}://${location.host}/ws`);
 
-            socket.onopen = () => {
-                setStatus('connected');
-            };
-
-            socket.onmessage = (event) => {
-                const msg = JSON.parse(event.data);
-                dispatch(msg);
-            };
-
+            socket.onopen = () => setStatus('connected');
+            socket.onmessage = (e) => dispatch(JSON.parse(e.data));
             socket.onclose = () => {
                 setStatus('reconnecting');
                 runButton.disabled = true;
-                setTimeout(connect, 3000);   // auto-reconnect
+                setTimeout(connect, 3000);
             };
-
-            socket.onerror = () => {
-                socket.close();
-            };
+            socket.onerror = () => socket.close();
         }
 
-        // ── Message dispatcher (hexagonal protocol) ──────────────────────
+        // ── Message dispatcher ───────────────────────────────────────────
         function dispatch(msg) {
             switch (msg.type) {
                 case 'welcome':
@@ -89,21 +122,44 @@
                     runButton.disabled = false;
                     tableBody.innerHTML = `<tr><td colspan="100%" class="empty-state">${msg.payload.message} · v${msg.payload.version}</td></tr>`;
                     break;
-
                 case 'query_result':
                     renderResult(msg.payload);
                     break;
-
                 case 'query_error':
                     showError(msg.payload.detail);
                     break;
-
-                default:
-                    console.warn('Unknown message type:', msg.type);
             }
         }
 
-        // ── Send a query_request envelope ────────────────────────────────
+        // ── Navigation & Interactions ────────────────────────────────────
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+            
+            const btn = document.querySelector(`.tab-btn[onclick*="${tab}"]`);
+            if (btn) btn.classList.add('active');
+            document.getElementById(`${tab}-section`).classList.add('active');
+        }
+
+        function fetchMetric(metric) {
+            if (!socket || socket.readyState !== WebSocket.OPEN) return;
+
+            const aLoader = document.getElementById('analytics-loader');
+            const aWrapper = document.getElementById('analytics-result-wrapper');
+            const aHead = document.getElementById('analytics-head');
+            const aBody = document.getElementById('analytics-body');
+
+            aLoader.style.display = 'block';
+            aWrapper.style.display = 'none';
+            aHead.innerHTML = '';
+            aBody.innerHTML = '';
+
+            socket.send(JSON.stringify({
+                type: 'analytics_request',
+                payload: { metric }
+            }));
+        }
+
         function sendQuery() {
             const sql = queryInput.value.trim();
             if (!sql || !socket || socket.readyState !== WebSocket.OPEN) return;
@@ -115,53 +171,72 @@
             tableBody.innerHTML = '';
             runButton.disabled = true;
 
-            socket.send(JSON.stringify({
-                type:    'query_request',
-                payload: { sql }
-            }));
+            socket.send(JSON.stringify({ type: 'query_request', payload: { sql } }));
         }
 
-        // ── Render helpers ────────────────────────────────────────────────
+        // ── Rendering ────────────────────────────────────────────────────
         function renderResult({ columns, rows, row_count }) {
-            loader.style.display = 'none';
+            const isAnalytics = document.getElementById('analytics-section').classList.contains('active');
+            
+            const currentLoader = isAnalytics ? document.getElementById('analytics-loader') : loader;
+            const currentHead = isAnalytics ? document.getElementById('analytics-head') : tableHead;
+            const currentBody = isAnalytics ? document.getElementById('analytics-body') : tableBody;
+            const currentWrapper = isAnalytics ? document.getElementById('analytics-result-wrapper') : null;
+
+            currentLoader.style.display = 'none';
+            if (currentWrapper) currentWrapper.style.display = 'block';
             runButton.disabled = false;
 
             if (!columns.length) {
-                tableBody.innerHTML = `<tr><td colspan="100%" class="empty-state">Query returned no results.</td></tr>`;
+                currentBody.innerHTML = `<tr><td colspan="100%" class="empty-state">No results.</td></tr>`;
                 return;
             }
 
-            // Header
+            // Generate Header
             const headRow = document.createElement('tr');
             columns.forEach(col => {
                 const th = document.createElement('th');
-                th.textContent = col;
+                th.textContent = col.replace(/_/g, ' ');
                 headRow.appendChild(th);
             });
-            tableHead.appendChild(headRow);
+            currentHead.appendChild(headRow);
 
-            // Rows — animate each row in with a stagger
+            // Generate Rows
             rows.forEach((row, i) => {
                 const tr = document.createElement('tr');
                 tr.style.animationDelay = `${i * 30}ms`;
                 tr.classList.add('fade-in');
                 columns.forEach(col => {
                     const td = document.createElement('td');
-                    td.textContent = row[col] ?? 'NULL';
+                    let val = row[col];
+                    if (val === null) val = 'NULL';
+                    else if (typeof val === 'object' && !Array.isArray(val)) val = formatInterval(val);
+                    td.textContent = val;
                     tr.appendChild(td);
                 });
-                tableBody.appendChild(tr);
+                currentBody.appendChild(tr);
             });
 
-            rowCount.textContent = `${row_count} row${row_count === 1 ? '' : 's'} returned`;
+            if (!isAnalytics) {
+                rowCount.textContent = `${row_count} row${row_count === 1 ? '' : 's'} returned`;
+            }
+        }
+
+        function formatInterval(val) {
+            const parts = [];
+            if (val.days)    parts.push(`${val.days}d`);
+            if (val.hours)   parts.push(`${val.hours}h`);
+            if (val.minutes) parts.push(`${val.minutes}m`);
+            if (val.seconds) parts.push(`${Math.floor(val.seconds)}s`);
+            return parts.join(' ') || '0s';
         }
 
         function showError(detail) {
             loader.style.display = 'none';
+            document.getElementById('analytics-loader').style.display = 'none';
             runButton.disabled = false;
             errorMsg.textContent = '⚠ ' + detail;
             errorMsg.style.display = 'block';
-            tableBody.innerHTML = `<tr><td colspan="100%" class="empty-state error-state">Query failed.</td></tr>`;
         }
 
         function setStatus(state) {
@@ -169,11 +244,10 @@
             wsText.textContent = { connected: 'Connected', connecting: 'Connecting…', reconnecting: 'Reconnecting…' }[state] ?? state;
         }
 
-        // ── Event bindings ────────────────────────────────────────────────
+        // ── Event bindings ───────────────────────────────────────────────
         runButton.addEventListener('click', sendQuery);
         queryInput.addEventListener('keydown', e => { if (e.key === 'Enter') sendQuery(); });
 
-        // Boot
         connect();
     </script>
 </body>
