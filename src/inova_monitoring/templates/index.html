@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }}</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header>
+        <h1>Inova Apps Monitoring</h1>
+        <p class="subtitle">Instance Overview & PostgreSQL Query Interface</p>
+    </header>
+
+    <div class="container">
+        <div id="error-message"></div>
+
+        <div class="controls">
+            <input type="text" id="query-input" placeholder="Enter SQL query (e.g., SELECT * FROM users LIMIT 5)" value="SELECT current_database(), current_user, version();">
+            <button id="run-query">Execute Query</button>
+        </div>
+
+        <div id="loader" class="loader"></div>
+
+        <div class="table-wrapper">
+            <table id="data-table">
+                <thead id="table-head"></thead>
+                <tbody id="table-body">
+                    <tr>
+                        <td colspan="100%" style="text-align: center; color: var(--text-muted); padding: 3rem;">
+                            Click "Execute Query" to see data
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const queryInput = document.getElementById('query-input');
+        const runButton = document.getElementById('run-query');
+        const tableHead = document.getElementById('table-head');
+        const tableBody = document.getElementById('table-body');
+        const loader = document.getElementById('loader');
+        const errorMessage = document.getElementById('error-message');
+
+        async function fetchData() {
+            const query = queryInput.value;
+            
+            // UI State
+            errorMessage.style.display = 'none';
+            loader.style.display = 'block';
+            tableBody.innerHTML = '';
+            tableHead.innerHTML = '';
+
+            try {
+                const response = await fetch(`/api/data?query=${encodeURIComponent(query)}`);
+                const result = await response.json();
+
+                if (!result.success) {
+                    throw new Error(result.error);
+                }
+
+                const data = result.data;
+
+                if (data.length === 0) {
+                    tableBody.innerHTML = '<tr><td colspan="100%" style="text-align: center; padding: 3rem;">No results found</td></tr>';
+                } else {
+                    // Build headers
+                    const headers = Object.keys(data[0]);
+                    const headRow = document.createElement('tr');
+                    headers.forEach(header => {
+                        const th = document.createElement('th');
+                        th.textContent = header;
+                        headRow.appendChild(th);
+                    });
+                    tableHead.appendChild(headRow);
+
+                    // Build rows
+                    data.forEach(row => {
+                        const tr = document.createElement('tr');
+                        headers.forEach(header => {
+                            const td = document.createElement('td');
+                            td.textContent = row[header];
+                            tr.appendChild(td);
+                        });
+                        tableBody.appendChild(tr);
+                    });
+                }
+            } catch (error) {
+                errorMessage.textContent = 'Error: ' + error.message;
+                errorMessage.style.display = 'block';
+                tableBody.innerHTML = '<tr><td colspan="100%" style="text-align: center; padding: 3rem; color: #ef4444;">Query failed</td></tr>';
+            } finally {
+                loader.style.display = 'none';
+            }
+        }
+
+        runButton.addEventListener('click', fetchData);
+
+        // Initial fetch
+        fetchData();
+    </script>
+</body>
+</html>
