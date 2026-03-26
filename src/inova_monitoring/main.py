@@ -39,18 +39,18 @@ from .messages import (
 app = FastAPI(title="Inova Monitoring", version="0.1.0")
 
 # Session Middleware is required for Authlib OAuth
-app.add_middleware(SessionMiddleware, secret_key=os.getenv("SECRET_KEY", "inova_super_secret_dev_key"))
+app.add_middleware(
+    SessionMiddleware, secret_key=os.getenv("SECRET_KEY", "inova_super_secret_dev_key")
+)
 
 # OAuth Configuration
 oauth = OAuth()
 oauth.register(
-    name='google',
-    server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
+    name="google",
+    server_metadata_url="https://accounts.google.com/.well-known/openid-configuration",
     client_id=os.getenv("GOOGLE_CLIENT_ID", "dummy_client_id_for_dev"),
     client_secret=os.getenv("GOOGLE_CLIENT_SECRET", "dummy_client_secret_for_dev"),
-    client_kwargs={
-        'scope': 'openid email profile'
-    }
+    client_kwargs={"scope": "openid email profile"},
 )
 
 BASE_DIR = Path(__file__).parent
@@ -58,11 +58,9 @@ templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
 
 
-
-
 def get_current_user(request: Request) -> Any:
     """Helper to get authentication user from session."""
-    return request.session.get('user')
+    return request.session.get("user")
 
 
 @app.get("/login")
@@ -70,8 +68,8 @@ async def login(request: Request):
     """Initiate Google OAuth login."""
     user = get_current_user(request)
     if user:
-        return RedirectResponse('/')
-    redirect_uri = request.url_for('auth')
+        return RedirectResponse("/")
+    redirect_uri = request.url_for("auth")
     return await oauth.google.authorize_redirect(request, str(redirect_uri))
 
 
@@ -82,18 +80,18 @@ async def auth(request: Request):
         token = await oauth.google.authorize_access_token(request)
     except OAuthError as error:
         return HTMLResponse(f"<h1>OAuth Error</h1><p>{error.error}</p>")
-    
-    user = token.get('userinfo')
+
+    user = token.get("userinfo")
     if user:
-        request.session['user'] = dict(user)
-    return RedirectResponse('/')
+        request.session["user"] = dict(user)
+    return RedirectResponse("/")
 
 
 @app.get("/logout")
 async def logout(request: Request):
     """Logout current user."""
-    request.session.pop('user', None)
-    return RedirectResponse('/')
+    request.session.pop("user", None)
+    return RedirectResponse("/")
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -101,7 +99,7 @@ async def read_root(request: Request):
     """Render the monitoring dashboard."""
     user = get_current_user(request)
     if not user:
-        return RedirectResponse('/login')
+        return RedirectResponse("/login")
     return templates.TemplateResponse(
         request=request,
         name="index.html",
@@ -114,7 +112,7 @@ async def read_users(request: Request):
     """Render the user activity & profiling page."""
     user = get_current_user(request)
     if not user:
-        return RedirectResponse('/login')
+        return RedirectResponse("/login")
     return templates.TemplateResponse(
         request=request,
         name="users.html",
@@ -127,7 +125,7 @@ async def read_reports(request: Request):
     """Render the reports page."""
     user = get_current_user(request)
     if not user:
-        return RedirectResponse('/login')
+        return RedirectResponse("/login")
     return templates.TemplateResponse(
         request=request,
         name="reports.html",
@@ -140,7 +138,7 @@ async def read_logs(request: Request):
     """Render the current system logs page."""
     user = get_current_user(request)
     if not user:
-        return RedirectResponse('/login')
+        return RedirectResponse("/login")
     return templates.TemplateResponse(
         request=request,
         name="logs.html",
