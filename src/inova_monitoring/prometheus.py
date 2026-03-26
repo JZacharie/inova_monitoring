@@ -69,14 +69,9 @@ class PrometheusMetricsFetcher:
         metrics = []
         try:
             for family in text_string_to_metric_families(text):
-                family_data = {
-                    "name": family.name,
-                    "help": family.documentation,
-                    "type": family.type,
-                    "samples": [],
-                }
+                samples = []
                 for sample in family.samples:
-                    family_data["samples"].append(
+                    samples.append(
                         {
                             "name": sample.name,
                             "labels": sample.labels,
@@ -84,6 +79,12 @@ class PrometheusMetricsFetcher:
                             "timestamp": sample.timestamp,
                         }
                     )
+                family_data = {
+                    "name": family.name,
+                    "help": family.documentation,
+                    "type": family.type,
+                    "samples": samples,
+                }
                 metrics.append(family_data)
         except Exception:
             # If parsing fails, return empty
