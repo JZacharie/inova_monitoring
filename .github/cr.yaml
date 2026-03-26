@@ -1,0 +1,5 @@
+# Chart Releaser configuration
+pages-branch: gh-pages
+charts-dir: charts
+index-path: index.yaml
+package-path: .cr-release-packages
