@@ -1,146 +1,83 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Service Catalog — Inova Monitoring</title>
-    <meta name="description" content="Inova Service Catalog & Instance Dashboard - Fleet observability and lifecycle management.">
-    <link rel="stylesheet" href="/static/style.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <!-- Leaflet for Map -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-    <style>
-        #map { height: 400px; width: 100%; border-radius: var(--radius); margin-bottom: 24px; border: 1px solid var(--border); box-shadow: var(--shadow-md); z-index: 1; }
-        .instance-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 24px; }
-        .instance-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; transition: all 0.3s ease; display: flex; flex-direction: column; gap: 12px; position: relative; overflow: hidden; cursor: pointer; }
-        .instance-card:hover { border-color: var(--primary-light); transform: translateY(-4px); box-shadow: var(--shadow-lg); }
-        .instance-card.prod { border-left: 4px solid var(--accent-green); }
-        .instance-card.staging { border-left: 4px solid var(--accent-yellow); }
-        .instance-card.dev { border-left: 4px solid var(--accent-purple); }
-        .instance-header { display: flex; justify-content: space-between; align-items: flex-start; }
-        .instance-name { font-size: 1.1rem; font-weight: 700; color: var(--text-heading); }
-        .instance-env-tag { font-size: 0.65rem; font-weight: 800; padding: 2px 8px; border-radius: 4px; text-transform: uppercase; }
-        .env-prod { background: rgba(0, 184, 148, 0.1); color: var(--accent-green); }
-        .env-staging { background: rgba(253, 203, 110, 0.1); color: var(--accent-yellow); }
-        .env-dev { background: rgba(162, 155, 254, 0.1); color: var(--accent-purple); }
-        .instance-info row { display: flex; gap: 12px; font-size: 0.8rem; color: var(--text-muted); align-items: center; }
-        .instance-info-label { font-weight: 600; min-width: 80px; }
-        .instance-info-value { color: var(--text-base); }
-        .instance-actions { margin-top: auto; padding-top: 16px; border-top: 1px solid var(--border); display: flex; gap: 12px; }
-        .health-indicator { width: 12px; height: 12px; border-radius: 50%; display: inline-block; position: relative; }
-        .health-green { background: var(--accent-green); box-shadow: 0 0 8px var(--accent-green); }
-        .health-yellow { background: var(--accent-yellow); box-shadow: 0 0 8px var(--accent-yellow); }
-        .health-red { background: var(--accent-red); box-shadow: 0 0 8px var(--accent-red); }
-        .argo-link { display: flex; align-items: center; gap: 6px; color: var(--primary-light); text-decoration: none; font-size: 0.75rem; font-weight: 600; }
-        .argo-link:hover { text-decoration: underline; }
-        .search-filters { display: flex; gap: 16px; margin-bottom: 24px; background: var(--bg-card); padding: 16px; border-radius: var(--radius); border: 1px solid var(--border); }
-        .filter-group { display: flex; flex-direction: column; gap: 6px; flex: 1; }
-        .filter-label { font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; }
-        .filter-input { background: var(--bg-base); border: 1px solid var(--border); color: var(--text-base); padding: 8px 12px; border-radius: 6px; font-size: 0.85rem; }
-        
-        .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); z-index: 1000; visibility: hidden; opacity: 0; transition: all 0.3s ease; }
-        .overlay.visible { visibility: visible; opacity: 1; }
-        .drawer { position: fixed; top: 0; right: -450px; width: 450px; height: 100%; background: var(--bg-card); border-left: 1px solid var(--border); z-index: 1001; transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1); padding: 40px; }
-        .drawer.open { right: 0; box-shadow: -20px 0 40px rgba(0,0,0,0.5); }
-        .drawer-close-btn { position: absolute; top: 20px; right: 20px; background: none; border: 1px solid var(--border); color: var(--text-muted); padding: 6px 12px; border-radius: 4px; cursor: pointer; }
-    </style>
-</head>
-<body>
+{% extends "base.html" %}
 
-<div class="app-layout">
-    <aside class="sidebar" id="sidebar">
-        <div class="sidebar-brand">
-            <div class="brand-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-                    <path d="M2 17l10 5 10-5"/>
-                    <path d="M2 12l10 5 10-5"/>
-                </svg>
-            </div>
-            <div class="brand-text">
-                <div class="brand-name">Industrial Intel</div>
-                <div class="brand-sub">Sanofi Ecosystem</div>
-            </div>
-        </div>
+{% block title %}Service Catalog — Inova Monitoring{% endblock %}
 
-        <nav class="sidebar-nav">
-            <a class="nav-item" id="nav-dashboard" href="/">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
-                <span>Dashboard</span>
-            </a>
-            <a class="nav-item active" id="nav-catalog" href="/catalog">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
-                <span>Service Catalog</span>
-            </a>
-            <a class="nav-item" id="nav-analytics" href="/reports">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-                <span>Analytics</span>
-            </a>
-            <a class="nav-item" id="nav-logs" href="/users">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                <span>Activity Logs</span>
-            </a>
-            <div class="nav-spacer"></div>
-        </nav>
-        <div class="sidebar-footer">
-            <a class="nav-item" href="/logout">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-                <span>Logout</span>
-            </a>
-        </div>
-    </aside>
+{% block extra_head %}
+<!-- Leaflet for Map -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<style>
+    #map { height: 400px; width: 100%; border-radius: var(--radius); margin-bottom: 24px; border: 1px solid var(--border); box-shadow: var(--shadow-md); z-index: 1; }
+    .instance-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 24px; }
+    .instance-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; transition: all 0.3s ease; display: flex; flex-direction: column; gap: 12px; position: relative; overflow: hidden; cursor: pointer; }
+    .instance-card:hover { border-color: var(--primary-light); transform: translateY(-4px); box-shadow: var(--shadow-lg); }
+    .instance-card.prod { border-left: 4px solid var(--accent-green); }
+    .instance-card.staging { border-left: 4px solid var(--accent-yellow); }
+    .instance-card.dev { border-left: 4px solid var(--accent-purple); }
+    .instance-header { display: flex; justify-content: space-between; align-items: flex-start; }
+    .instance-name { font-size: 1.1rem; font-weight: 700; color: var(--text-heading); }
+    .instance-env-tag { font-size: 0.65rem; font-weight: 800; padding: 2px 8px; border-radius: 4px; text-transform: uppercase; }
+    .env-prod { background: rgba(0, 184, 148, 0.1); color: var(--accent-green); }
+    .env-staging { background: rgba(253, 203, 110, 0.1); color: var(--accent-yellow); }
+    .env-dev { background: rgba(162, 155, 254, 0.1); color: var(--accent-purple); }
+    .instance-info row { display: flex; gap: 12px; font-size: 0.8rem; color: var(--text-muted); align-items: center; }
+    .instance-info-label { font-weight: 600; min-width: 80px; }
+    .instance-info-value { color: var(--text-base); }
+    .instance-actions { margin-top: auto; padding-top: 16px; border-top: 1px solid var(--border); display: flex; gap: 12px; }
+    .health-indicator { width: 12px; height: 12px; border-radius: 50%; display: inline-block; position: relative; }
+    .health-green { background: var(--accent-green); box-shadow: 0 0 8px var(--accent-green); }
+    .health-yellow { background: var(--accent-yellow); box-shadow: 0 0 8px var(--accent-yellow); }
+    .health-red { background: var(--accent-red); box-shadow: 0 0 8px var(--accent-red); }
+    .argo-link { display: flex; align-items: center; gap: 6px; color: var(--primary-light); text-decoration: none; font-size: 0.75rem; font-weight: 600; }
+    .argo-link:hover { text-decoration: underline; }
+    .search-filters { display: flex; gap: 16px; margin-bottom: 24px; background: var(--bg-card); padding: 16px; border-radius: var(--radius); border: 1px solid var(--border); }
+    .filter-group { display: flex; flex-direction: column; gap: 6px; flex: 1; }
+    .filter-label { font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; }
+    .filter-input { background: var(--bg-base); border: 1px solid var(--border); color: var(--text-base); padding: 8px 12px; border-radius: 6px; font-size: 0.85rem; }
+    
+    .overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); z-index: 1000; visibility: hidden; opacity: 0; transition: all 0.3s ease; }
+    .overlay.visible { visibility: visible; opacity: 1; }
+    .drawer { position: fixed; top: 0; right: -450px; width: 450px; height: 100%; background: var(--bg-card); border-left: 1px solid var(--border); z-index: 1001; transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1); padding: 40px; }
+    .drawer.open { right: 0; box-shadow: -20px 0 40px rgba(0,0,0,0.5); }
+    .drawer-close-btn { position: absolute; top: 20px; right: 20px; background: none; border: 1px solid var(--border); color: var(--text-muted); padding: 6px 12px; border-radius: 4px; cursor: pointer; }
+</style>
+{% endblock %}
 
-    <div class="main-area">
-        <header class="top-header">
-            <div class="header-left">
-                <div class="header-title">Service Catalog & Fleet Overview</div>
-            </div>
-            <div class="header-right">
-                <div class="user-profile">
-                    <div class="user-avatar">
-                        {{ (user.name or user.get('name') or 'U')[0].upper() }}
-                    </div>
-                </div>
-            </div>
-        </header>
+{% block breadcrumb %}SERVICE CATALOG{% endblock %}
 
-        <div class="dashboard-content">
-            <div id="map"></div>
+{% block content %}
+<div id="map"></div>
 
-            <div class="search-filters">
-                <div class="filter-group">
-                    <label class="filter-label">Search</label>
-                    <input type="text" id="search-input" class="filter-input" placeholder="Search by name, version, PO...">
-                </div>
-                <div class="filter-group">
-                    <label class="filter-label">Environment</label>
-                    <select id="env-filter" class="filter-input">
-                        <option value="all">All Environments</option>
-                        <option value="Prod">Production</option>
-                        <option value="Staging">Staging</option>
-                        <option value="Dev">Development</option>
-                    </select>
-                </div>
-                <div class="filter-group">
-                    <label class="filter-label">Region</label>
-                    <select id="region-filter" class="filter-input">
-                        <option value="all">All Regions</option>
-                    </select>
-                </div>
-            </div>
-
-            <div class="instance-grid" id="instance-grid">
-                <div style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--text-muted);">
-                    Loading instances...
-                </div>
-            </div>
-        </div>
+<div class="search-filters">
+    <div class="filter-group">
+        <label class="filter-label">Search</label>
+        <input type="text" id="search-input" class="filter-input" placeholder="Search by name, version, PO...">
+    </div>
+    <div class="filter-group">
+        <label class="filter-label">Environment</label>
+        <select id="env-filter" class="filter-input">
+            <option value="all">All Environments</option>
+            <option value="prod">Production</option>
+            <option value="val">Validation</option>
+            <option value="dev">Development</option>
+        </select>
+    </div>
+    <div class="filter-group">
+        <label class="filter-label">Region</label>
+        <select id="region-filter" class="filter-input">
+            <option value="all">All Regions</option>
+        </select>
     </div>
 </div>
 
+<div class="instance-grid" id="instance-grid">
+    <div style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--text-muted);">
+        Loading instances...
+    </div>
+</div>
+{% endblock %}
+
+{% block interaction_layers %}
 <div class="overlay" id="overlay" onclick="closeDrawer()"></div>
 <div class="drawer" id="drawer">
     <button class="drawer-close-btn" onclick="closeDrawer()">Close Panel</button>
@@ -149,7 +86,9 @@
         <p>Loading drill-down data…</p>
     </div>
 </div>
+{% endblock %}
 
+{% block extra_scripts %}
 <script>
     let instances = [];
     let map = null;
@@ -193,7 +132,7 @@
             const matchesSearch = i.name.toLowerCase().includes(searchTerm) || 
                                 (i.owner_po && i.owner_po.toLowerCase().includes(searchTerm)) ||
                                 (i.version && i.version.toLowerCase().includes(searchTerm));
-            const matchesEnv = envFilter === 'all' || i.environment === envFilter;
+            const matchesEnv = envFilter === 'all' || i.environment.toLowerCase() === envFilter;
             const matchesRegion = regionFilter === 'all' || i.region === regionFilter;
             return matchesSearch && matchesEnv && matchesRegion;
         });
@@ -286,7 +225,7 @@
         markers = [];
         instances.forEach(i => {
             if (i.latitude && i.longitude) {
-                const color = i.environment === 'Prod' ? '#00b894' : (i.environment === 'Staging' ? '#fdcb6e' : '#a29bfe');
+                const color = i.environment === 'prod' ? '#00b894' : (i.environment === 'val' ? '#fdcb6e' : '#a29bfe');
                 const marker = L.circleMarker([i.latitude, i.longitude], {
                     radius: 8, fillColor: color, color: "#fff", weight: 1, opacity: 1, fillOpacity: 0.8
                 }).addTo(map);
@@ -365,5 +304,4 @@
 
     init();
 </script>
-</body>
-</html>
+{% endblock %}

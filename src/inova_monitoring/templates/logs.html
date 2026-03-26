@@ -1,703 +1,215 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Logs — INOVA PASX MES</title>
-    <meta name="description" content="Real-time Container Logs for PASX Application and Systems">
-    <link rel="stylesheet" href="/static/style.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
-    <style>
-        /* ── Page-specific overrides (Logs) ── */
+{% extends "base.html" %}
 
-        .page-header-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 24px;
-        }
+{% block title %}System Logs — Inova Monitoring{% endblock %}
 
-        .page-title {
-            font-size: 1.5rem;
-            font-weight: 800;
-            color: var(--text-heading);
-            margin-bottom: 4px;
-        }
+{% block extra_head %}
+<!-- JetBrains Mono for Logs -->
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+    /* ── Page-specific overrides (Logs) ── */
+    .page-header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+    .page-title { font-size: 1.5rem; font-weight: 800; color: var(--text-heading); margin-bottom: 4px; }
+    .page-subtitle { font-size: 0.85rem; color: var(--text-muted); }
+    .live-status-block { display: flex; align-items: center; gap: 16px; background: rgba(10, 11, 26, 0.4); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 8px 16px; }
+    .live-indicator { display: flex; align-items: center; gap: 8px; font-size: 0.72rem; font-weight: 700; color: var(--accent-red); text-transform: uppercase; letter-spacing: 0.08em; }
+    .live-indicator.paused { color: var(--text-muted); }
+    .pulse-dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; animation: pulse 2s infinite; }
+    @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
+    .status-divider { width: 1px; height: 24px; background: var(--border); }
+    .status-metric { display: flex; flex-direction: column; gap: 2px; }
+    .status-metric-label { font-size: 0.55rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+    .status-metric-val { font-size: 0.82rem; font-weight: 700; color: var(--text-main); font-family: 'JetBrains Mono', monospace; }
+    .search-row { display: flex; gap: 12px; margin-bottom: 16px; }
+    .search-input-wrapper { position: relative; flex: 1; }
+    .search-input-wrapper svg { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-muted); width: 18px; height: 18px; }
+    .log-search-input { width: 100%; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px 14px 12px 42px; color: var(--text-main); font-size: 0.85rem; outline: none; transition: border-color var(--transition); }
+    .log-search-input:focus { border-color: var(--primary); }
+    .btn-primary-large { padding: 0 32px; background: linear-gradient(135deg, var(--primary), var(--primary-light)); border: none; border-radius: var(--radius-sm); color: white; font-size: 0.85rem; font-weight: 700; cursor: pointer; transition: opacity var(--transition); }
+    .btn-primary-large:hover { opacity: 0.9; }
+    .filter-row { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+    .filter-dropdown { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 14px; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text-main); font-size: 0.75rem; font-weight: 500; cursor: pointer; min-width: 120px; }
+    .filter-dropdown:hover { border-color: var(--primary-light); }
+    .filter-dropdown svg { width: 14px; height: 14px; }
+    .btn-clear { background: none; border: none; color: var(--primary-light); font-size: 0.75rem; font-weight: 600; cursor: pointer; margin-left: 8px; }
+    .btn-clear:hover { text-decoration: underline; }
+    .quick-filters { display: flex; gap: 8px; align-items: center; padding: 10px 14px; background: rgba(10, 11, 26, 0.3); border-radius: var(--radius-sm); margin-bottom: 24px; border: 1px solid var(--border); }
+    .qf-btn { background: transparent; border: none; color: var(--text-muted); font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; padding: 6px 12px; border-radius: 4px; cursor: pointer; transition: all var(--transition); }
+    .qf-btn:hover { color: var(--text-main); background: rgba(255,255,255,0.05); }
+    .qf-btn.active { background: var(--primary-light); color: white; }
+    .qf-btn.active-green { color: var(--accent-green); display: flex; align-items: center; gap: 6px; }
+    .qf-btn.active-green svg { width: 10px; height: 10px; fill: currentColor; }
+    .logs-table-wrapper { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius) var(--radius) 0 0; overflow: hidden; position: relative; min-height: 480px; }
+    .logs-table { width: 100%; border-collapse: collapse; font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; }
+    .logs-table th { text-align: left; padding: 12px 16px; background: rgba(10, 11, 26, 0.8); color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid var(--border); position: sticky; top: 0; backdrop-filter: blur(8px); z-index: 10; }
+    .logs-table td { padding: 10px 16px; color: var(--text-muted); border-bottom: 1px solid rgba(255,255,255,0.03); vertical-align: top; }
+    .logs-table tr:hover td { background: rgba(139, 92, 246, 0.04); color: var(--text-main); }
+    .log-ts { color: rgba(255,255,255,0.4); white-space: nowrap; }
+    .log-badge { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 0.6rem; font-weight: 700; background: rgba(107, 111, 138, 0.2); color: var(--text-muted); border: 1px solid rgba(255,255,255,0.1); }
+    .log-err { background: rgba(239, 68, 68, 0.15); color: var(--accent-red); border-color: rgba(239, 68, 68, 0.3); }
+    .log-wrn { background: rgba(245, 158, 11, 0.15); color: var(--accent-yellow); border-color: rgba(245, 158, 11, 0.3); }
+    .log-inf { background: rgba(16, 185, 129, 0.15); color: var(--accent-green); border-color: rgba(16, 185, 129, 0.3); }
+    .log-dbg { background: rgba(139, 92, 246, 0.15); color: var(--primary-light); border-color: rgba(139, 92, 246, 0.3); }
+    .log-container-name { color: var(--primary-light); font-weight: 600; white-space: nowrap; }
+    .log-msg { color: var(--text-main); word-break: break-all; }
+    .floating-controls { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; background: rgba(30, 41, 59, 0.9); backdrop-filter: blur(12px); border: 1px solid var(--border); border-radius: 30px; padding: 8px 24px; gap: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); z-index: 20; }
+    .fc-toggle { display: flex; align-items: center; gap: 10px; font-size: 0.65rem; font-weight: 700; color: var(--text-main); text-transform: uppercase; letter-spacing: 0.05em; }
+    .fc-toggle-switch { width: 32px; height: 18px; background: var(--accent-green); border-radius: 9px; position: relative; cursor: pointer; }
+    .fc-toggle-switch::after { content: ''; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; background: white; border-radius: 50%; transform: translateX(14px); transition: transform var(--transition); }
+    .fc-toggle-switch:not(.on) { background: var(--border); }
+    .fc-toggle-switch:not(.on)::after { transform: translateX(0); }
+    .fc-btn { display: flex; align-items: center; gap: 8px; background: none; border: none; color: var(--text-muted); font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; cursor: pointer; transition: color var(--transition); }
+    .fc-btn:hover { color: white; }
+    .fc-btn svg { width: 14px; height: 14px; }
+    .fc-divider { width: 1px; height: 24px; background: rgba(255,255,255,0.1); }
+    .bottom-panel { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; background: var(--bg-surface); border: 1px solid var(--border); border-top: none; border-radius: 0 0 var(--radius) var(--radius); padding: 24px; }
+    .bp-section-title { display: flex; justify-content: space-between; align-items: center; font-size: 0.65rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 16px; }
+    .bp-total-logs { color: var(--primary-light); text-transform: none; }
+    .stats-bar-track { height: 8px; border-radius: 4px; display: flex; overflow: hidden; margin-bottom: 12px; }
+    .stats-bar-inf { background: var(--accent-green); width: 85%; }
+    .stats-bar-wrn { background: var(--text-muted); width: 10%; }
+    .stats-bar-err { background: var(--accent-red); width: 5%; }
+    .stats-legend { display: flex; gap: 24px; font-size: 0.65rem; font-weight: 600; color: var(--text-main); }
+    .dot-inf { display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--accent-green); margin-right:6px;}
+    .dot-err { display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--accent-red); margin-right:6px;}
+    .top-sources-grid { display: flex; gap: 16px; }
+    .source-card { flex: 1; background: rgba(10, 11, 26, 0.4); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; transition: border-color var(--transition); }
+    .source-card:hover { border-color: var(--primary-light); }
+    .source-info { display: flex; flex-direction: column; gap: 4px; }
+    .source-name { font-size: 0.72rem; font-weight: 700; color: var(--primary-light); }
+    .source-sub { font-size: 0.6rem; color: var(--text-muted); }
+    .source-count { font-size: 1.4rem; font-weight: 800; color: white; }
+    .fade-in-highlight { animation: highlightRow 2s ease forwards; }
+    @keyframes highlightRow { 0% { background: rgba(139, 92, 246, 0.2); } 100% { background: transparent; } }
+</style>
+{% endblock %}
 
-        .page-subtitle {
-            font-size: 0.85rem;
-            color: var(--text-muted);
-        }
+{% block breadcrumb %}SYSTEM LOGS{% endblock %}
 
-        /* Live Status Badge */
-        .live-status-block {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            background: rgba(10, 11, 26, 0.4);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-sm);
-            padding: 8px 16px;
-        }
-
-        .live-indicator {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 0.72rem;
-            font-weight: 700;
-            color: var(--accent-red);
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-        }
-
-        .live-indicator.paused {
-            color: var(--text-muted);
-        }
-
-        .pulse-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: currentColor;
-            animation: pulse 2s infinite;
-        }
-
-        .status-divider {
-            width: 1px;
-            height: 24px;
-            background: var(--border);
-        }
-
-        .status-metric {
-            display: flex;
-            flex-direction: column;
-            gap: 2px;
-        }
-
-        .status-metric-label {
-            font-size: 0.55rem;
-            font-weight: 600;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-        }
-
-        .status-metric-val {
-            font-size: 0.82rem;
-            font-weight: 700;
-            color: var(--text-main);
-            font-family: 'JetBrains Mono', monospace;
-        }
-
-        /* Search & Filters */
-        .search-row {
-            display: flex;
-            gap: 12px;
-            margin-bottom: 16px;
-        }
-
-        .search-input-wrapper {
-            position: relative;
-            flex: 1;
-        }
-
-        .search-input-wrapper svg {
-            position: absolute;
-            left: 14px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: var(--text-muted);
-            width: 18px;
-            height: 18px;
-        }
-
-        .log-search-input {
-            width: 100%;
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-sm);
-            padding: 12px 14px 12px 42px;
-            color: var(--text-main);
-            font-size: 0.85rem;
-            outline: none;
-            transition: border-color var(--transition);
-        }
-
-        .log-search-input:focus {
-            border-color: var(--primary);
-        }
-
-        .btn-primary-large {
-            padding: 0 32px;
-            background: linear-gradient(135deg, var(--primary), var(--primary-light));
-            border: none;
-            border-radius: var(--radius-sm);
-            color: white;
-            font-size: 0.85rem;
-            font-weight: 700;
-            cursor: pointer;
-            transition: opacity var(--transition);
-        }
-
-        .btn-primary-large:hover { opacity: 0.9; }
-
-        .filter-row {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 20px;
-        }
-
-        .filter-dropdown {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 8px;
-            padding: 8px 14px;
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-sm);
-            color: var(--text-main);
-            font-size: 0.75rem;
-            font-weight: 500;
-            cursor: pointer;
-            min-width: 120px;
-        }
-
-        .filter-dropdown:hover { border-color: var(--primary-light); }
-
-        .filter-dropdown svg { width: 14px; height: 14px; }
-
-        .btn-clear {
-            background: none;
-            border: none;
-            color: var(--primary-light);
-            font-size: 0.75rem;
-            font-weight: 600;
-            cursor: pointer;
-            margin-left: 8px;
-        }
-
-        .btn-clear:hover { text-decoration: underline; }
-
-        .quick-filters {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-            padding: 10px 14px;
-            background: rgba(10, 11, 26, 0.3);
-            border-radius: var(--radius-sm);
-            margin-bottom: 24px;
-            border: 1px solid var(--border);
-        }
-
-        .qf-btn {
-            background: transparent;
-            border: none;
-            color: var(--text-muted);
-            font-size: 0.65rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            padding: 6px 12px;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: all var(--transition);
-        }
-
-        .qf-btn:hover { color: var(--text-main); background: rgba(255,255,255,0.05); }
-
-        .qf-btn.active {
-            background: var(--primary-light);
-            color: white;
-        }
-        
-        .qf-btn.active-green {
-            color: var(--accent-green);
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-        
-        .qf-btn.active-green svg { width: 10px; height: 10px; fill: currentColor; }
-
-        /* Logs Table */
-        .logs-table-wrapper {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: var(--radius) var(--radius) 0 0;
-            overflow: hidden;
-            position: relative;
-            min-height: 400px;
-        }
-
-        .logs-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.72rem;
-        }
-
-        .logs-table th {
-            text-align: left;
-            padding: 12px 16px;
-            background: rgba(10, 11, 26, 0.8);
-            color: var(--text-muted);
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            border-bottom: 1px solid var(--border);
-            position: sticky;
-            top: 0;
-            backdrop-filter: blur(8px);
-            z-index: 10;
-        }
-
-        .logs-table td {
-            padding: 10px 16px;
-            color: var(--text-muted);
-            border-bottom: 1px solid rgba(255,255,255,0.03);
-            vertical-align: top;
-        }
-
-        .logs-table tr:hover td {
-            background: rgba(139, 92, 246, 0.04);
-            color: var(--text-main);
-        }
-
-        .log-ts {
-            color: rgba(255,255,255,0.4);
-            white-space: nowrap;
-        }
-
-        .log-badge {
-            display: inline-block;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-size: 0.6rem;
-            font-weight: 700;
-            background: rgba(107, 111, 138, 0.2);
-            color: var(--text-muted);
-            border: 1px solid rgba(255,255,255,0.1);
-        }
-
-        .log-err { background: rgba(239, 68, 68, 0.15); color: var(--accent-red); border-color: rgba(239, 68, 68, 0.3); }
-        .log-wrn { background: rgba(245, 158, 11, 0.15); color: var(--accent-yellow); border-color: rgba(245, 158, 11, 0.3); }
-        .log-inf { background: rgba(16, 185, 129, 0.15); color: var(--accent-green); border-color: rgba(16, 185, 129, 0.3); }
-        .log-dbg { background: rgba(139, 92, 246, 0.15); color: var(--primary-light); border-color: rgba(139, 92, 246, 0.3); }
-
-        .log-container-name {
-            color: var(--primary-light);
-            font-weight: 600;
-            white-space: nowrap;
-        }
-
-        .log-msg {
-            color: var(--text-main);
-            word-break: break-all;
-        }
-
-        /* Floating Controls */
-        .floating-controls {
-            position: absolute;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            display: flex;
-            align-items: center;
-            background: rgba(30, 41, 59, 0.9);
-            backdrop-filter: blur(12px);
-            border: 1px solid var(--border);
-            border-radius: 30px;
-            padding: 8px 24px;
-            gap: 20px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            z-index: 20;
-        }
-
-        .fc-toggle {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-size: 0.65rem;
-            font-weight: 700;
-            color: var(--text-main);
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-        }
-
-        .fc-toggle-switch {
-            width: 32px;
-            height: 18px;
-            background: var(--accent-green);
-            border-radius: 9px;
-            position: relative;
-            cursor: pointer;
-        }
-        
-        .fc-toggle-switch::after {
-            content: '';
-            position: absolute;
-            top: 2px;
-            left: 2px;
-            width: 14px;
-            height: 14px;
-            background: white;
-            border-radius: 50%;
-            transform: translateX(14px);
-            transition: transform var(--transition);
-        }
-
-        .fc-toggle-switch:not(.on) { background: var(--border); }
-        .fc-toggle-switch:not(.on)::after { transform: translateX(0); }
-
-        .fc-btn {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            background: none;
-            border: none;
-            color: var(--text-muted);
-            font-size: 0.65rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            cursor: pointer;
-            transition: color var(--transition);
-        }
-
-        .fc-btn:hover { color: white; }
-        .fc-btn svg { width: 14px; height: 14px; }
-
-        .fc-divider {
-            width: 1px;
-            height: 24px;
-            background: rgba(255,255,255,0.1);
-        }
-
-        /* Bottom Panel */
-        .bottom-panel {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 24px;
-            background: var(--bg-surface);
-            border: 1px solid var(--border);
-            border-top: none;
-            border-radius: 0 0 var(--radius) var(--radius);
-            padding: 24px;
-        }
-        
-        .bp-section-title {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 0.65rem;
-            font-weight: 700;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-            margin-bottom: 16px;
-        }
-        
-        .bp-total-logs {
-            color: var(--primary-light);
-            text-transform: none;
-        }
-
-        .stats-bar-track {
-            height: 8px;
-            border-radius: 4px;
-            display: flex;
-            overflow: hidden;
-            margin-bottom: 12px;
-        }
-
-        .stats-bar-inf { background: var(--accent-green); width: 85%; }
-        .stats-bar-wrn { background: var(--text-muted); width: 10%; }
-        .stats-bar-err { background: var(--accent-red); width: 5%; }
-
-        .stats-legend {
-            display: flex;
-            gap: 24px;
-            font-size: 0.65rem;
-            font-weight: 600;
-            color: var(--text-main);
-        }
-
-        .dot-inf { display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--accent-green); margin-right:6px;}
-        .dot-err { display:inline-block; width:8px; height:8px; border-radius:50%; background:var(--accent-red); margin-right:6px;}
-
-        .top-sources-grid {
-            display: flex;
-            gap: 16px;
-        }
-
-        .source-card {
-            flex: 1;
-            background: rgba(10, 11, 26, 0.4);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-sm);
-            padding: 12px 16px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            transition: border-color var(--transition);
-        }
-        
-        .source-card:hover { border-color: var(--primary-light); }
-        
-        .source-info { display: flex; flex-direction: column; gap: 4px; }
-        .source-name { font-size: 0.72rem; font-weight: 700; color: var(--primary-light); }
-        .source-sub { font-size: 0.6rem; color: var(--text-muted); }
-        .source-count { font-size: 1.4rem; font-weight: 800; color: white; }
-        
-        /* Insert animation for new rows */
-        .fade-in-highlight {
-            animation: highlightRow 2s ease forwards;
-        }
-        
-        @keyframes highlightRow {
-            0% { background: rgba(139, 92, 246, 0.2); }
-            100% { background: transparent; }
-        }
-
-    </style>
-</head>
-<body>
-
-<div class="app-layout">
-
-    <!-- ═══ SIDEBAR ═══ -->
-    <aside class="sidebar" id="sidebar">
-        <!-- Brand -->
-        <div class="sidebar-brand">
-            <div class="brand-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-                    <path d="M2 17l10 5 10-5"/>
-                    <path d="M2 12l10 5 10-5"/>
-                </svg>
-            </div>
-            <div class="brand-text">
-                <div class="brand-name">Industrial Intel</div>
-                <div class="brand-sub">Sanofi Ecosystem</div>
-            </div>
+{% block content %}
+<!-- Title & Live Status -->
+<div class="page-header-row">
+    <div>
+        <div class="page-title">Logs - Real-time Container Logs</div>
+        <div class="page-subtitle" style="font-size:0.85rem;">PASX Application and System Logs</div>
+    </div>
+    <div class="live-status-block" id="live-indicator">
+        <div class="live-indicator">
+            <span class="pulse-dot"></span> LIVE
         </div>
-
-        <!-- Nav -->
-        <nav class="sidebar-nav">
-            <a class="nav-item" href="/">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
-                <span>Dashboard</span>
-            </a>
-            <a class="nav-item" href="#">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-                <span>Analytics</span>
-            </a>
-            <a class="nav-item" href="#">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
-                <span>Assets</span>
-            </a>
-            <a class="nav-item" href="/catalog">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
-                <span>Service Catalog</span>
-            </a>
-            <a class="nav-item active" href="/logs">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-                <span>Logs</span>
-            </a>
-            <a class="nav-item" href="/reports">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
-                <span>Reports</span>
-            </a>
-
-            <div class="nav-btn-new" onclick="alert('New monitor coming soon!')">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                <span>New Monitor</span>
-            </div>
-            
-            <div class="nav-spacer"></div>
-        </nav>
-
-        <div class="sidebar-footer">
-            <a class="nav-item" href="#">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-                <span>Support</span>
-            </a>
-            <a class="nav-item" href="/logout">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-                <span>Logout</span>
-            </a>
+        <div class="status-divider"></div>
+        <div class="status-metric">
+            <span class="status-metric-label">RATE</span>
+            <span class="status-metric-val" id="live-rate">15 logs/sec</span>
         </div>
-    </aside>
-
-    <!-- ═══ MAIN AREA ═══ -->
-    <div class="main-area">
-
-        <!-- Header -->
-        <header class="top-header">
-            <div class="header-left">
-                <div class="header-title" style="font-size: 1.1rem;">Industrial MES Monitoring</div>
-            </div>
-
-            <div class="header-center" style="gap: 20px;">
-                <a href="/" style="color:var(--text-muted); text-decoration:none; font-size:0.8rem; font-weight:500;">Dashboard</a>
-                <a href="#" style="color:var(--text-muted); text-decoration:none; font-size:0.8rem; font-weight:500;">Assets</a>
-                <a href="/logs" style="color:white; text-decoration:none; font-size:0.8rem; font-weight:600; border-bottom:2px solid var(--primary-light); padding-bottom:4px;">Logs</a>
-                <a href="#" style="color:var(--text-muted); text-decoration:none; font-size:0.8rem; font-weight:500;">Analytics</a>
-            </div>
-
-            <div class="header-right">
-                <div style="position:relative;">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2" width="14" height="14" style="position:absolute; left:10px; top:8px;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                    <input type="text" placeholder="Quick search..." style="background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-sm); padding:6px 14px 6px 32px; color:var(--text-main); font-size:0.75rem; width:220px; outline:none;">
-                </div>
-                <button class="header-icon-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></button>
-                <div class="user-avatar" style="overflow:hidden; display:flex; align-items:center; justify-content:center; width:28px; height:28px; font-size:0.6rem; cursor:pointer;" onclick="window.location.href='/logout'">
-                    {% if user.picture or user.get('avatar_url') %}
-                    <img src="{{ user.picture or user.get('avatar_url') }}" style="width:100%; height:100%; object-fit:cover;">
-                    {% else %}
-                    {{ (user.name or user.get('name') or 'U')[0].upper() }}
-                    {% endif %}
-                </div>
-            </div>
-        </header>
-
-        <!-- Dashboard Content -->
-        <div class="dashboard-content" style="padding: 24px 40px; max-width: 1400px; margin: 0 auto;">
-
-            <!-- Title & Live Status -->
-            <div class="page-header-row">
-                <div>
-                    <div class="page-subtitle">HOME › LOGS › <span style="color:var(--text-main);">CONTAINER LOGS</span></div>
-                    <div class="page-title">Logs - Real-time Container Logs</div>
-                    <div class="page-subtitle" style="font-size:0.85rem;">PASX Application and System Logs</div>
-                </div>
-                <div class="live-status-block" id="live-indicator">
-                    <div class="live-indicator">
-                        <span class="pulse-dot"></span> LIVE
-                    </div>
-                    <div class="status-divider"></div>
-                    <div class="status-metric">
-                        <span class="status-metric-label">RATE</span>
-                        <span class="status-metric-val" id="live-rate">15 logs/sec</span>
-                    </div>
-                    <div class="status-divider"></div>
-                    <div class="status-metric">
-                        <span class="status-metric-label">LINES</span>
-                        <span class="status-metric-val" id="live-lines">1,247</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Search & Filters -->
-            <div class="search-row">
-                <div class="search-input-wrapper">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                    <input type="text" class="log-search-input" placeholder="Search logs (e.g. status:error 'connection reset')...">
-                </div>
-                <button class="btn-primary-large">Search</button>
-            </div>
-
-            <div class="filter-row">
-                <div class="filter-dropdown">Severity <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
-                <div class="filter-dropdown">Container <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
-                <div class="filter-dropdown">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                    Time Range
-                </div>
-                <div class="filter-dropdown">Namespace <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3 6 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1z"/></svg></div>
-                <button class="btn-clear">Clear All Filters</button>
-            </div>
-
-            <div class="quick-filters">
-                <button class="qf-btn active">ALL</button>
-                <button class="qf-btn">ERRORS ONLY</button>
-                <button class="qf-btn">WARNINGS</button>
-                <button class="qf-btn">LAST 15M</button>
-                
-                <div style="width:1px; height:16px; background:var(--border); margin:0 8px;"></div>
-                
-                <button class="qf-btn active-green">
-                    <svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-                    LIVE TAIL
-                </button>
-                <button class="qf-btn" style="display:flex; align-items:center; gap:6px;">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                    EXPORT
-                </button>
-            </div>
-
-            <!-- Table Section -->
-            <div class="logs-table-wrapper">
-                <table class="logs-table">
-                    <thead>
-                        <tr>
-                            <th style="width:180px;">TIMESTAMP</th>
-                            <th style="width:80px;">LEVEL</th>
-                            <th style="width:140px;">CONTAINER</th>
-                            <th>MESSAGE</th>
-                        </tr>
-                    </thead>
-                    <tbody id="log-table-body">
-                        <!-- Filled by JS -->
-                    </tbody>
-                </table>
-                
-                <!-- Floating table controls -->
-                <div class="floating-controls">
-                    <div class="fc-toggle">
-                        AUTO-SCROLL
-                        <div class="fc-toggle-switch on" id="auto-scroll-toggle"></div>
-                    </div>
-                    <div class="fc-divider"></div>
-                    <button class="fc-btn" id="btn-pause">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
-                        PAUSE STREAM
-                    </button>
-                    <div class="fc-divider"></div>
-                    <button class="fc-btn">
-                        SCROLL TO BOTTOM
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Bottom Panel -->
-            <div class="bottom-panel">
-                <div>
-                    <div class="bp-section-title">
-                        <span>AGGREGATE STATS (LAST HOUR)</span>
-                        <span class="bp-total-logs" id="total-logs-count">--</span>
-                    </div>
-                    <div class="stats-bar-track">
-                        <div class="stats-bar-inf"></div>
-                        <div class="stats-bar-wrn"></div>
-                        <div class="stats-bar-err"></div>
-                    </div>
-                    <div class="stats-legend">
-                        <span id="stat-info">Info: --</span>
-                        <span id="stat-wrn">Warning: --</span>
-                        <span id="stat-err">Error: --</span>
-                    </div>
-                </div>
-                
-                <div>
-                    <div class="bp-section-title">TOP ERROR SOURCES</div>
-                    <div class="top-sources-grid" id="top-sources">
-                        <!-- Filled by JS -->
-                    </div>
-                </div>
-            </div>
-
+        <div class="status-divider"></div>
+        <div class="status-metric">
+            <span class="status-metric-label">LINES</span>
+            <span class="status-metric-val" id="live-lines">1,247</span>
         </div>
     </div>
 </div>
 
+<!-- Search & Filters -->
+<div class="search-row">
+    <div class="search-input-wrapper">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" class="log-search-input" placeholder="Search logs (e.g. status:error 'connection reset')...">
+    </div>
+    <button class="btn-primary-large">Search</button>
+</div>
+
+<div class="filter-row">
+    <div class="filter-dropdown">Severity <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+    <div class="filter-dropdown">Container <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>
+    <div class="filter-dropdown">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        Time Range
+    </div>
+    <div class="filter-dropdown">Namespace <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3 6 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1z"/></svg></div>
+    <button class="btn-clear">Clear All Filters</button>
+</div>
+
+<div class="quick-filters">
+    <button class="qf-btn active">ALL</button>
+    <button class="qf-btn">ERRORS ONLY</button>
+    <button class="qf-btn">WARNINGS</button>
+    <button class="qf-btn">LAST 15M</button>
+    
+    <div style="width:1px; height:16px; background:var(--border); margin:0 8px;"></div>
+    
+    <button class="qf-btn active-green">
+        <svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        LIVE TAIL
+    </button>
+    <button class="qf-btn" style="display:flex; align-items:center; gap:6px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        EXPORT
+    </button>
+</div>
+
+<!-- Table Section -->
+<div class="logs-table-wrapper">
+    <table class="logs-table">
+        <thead>
+            <tr>
+                <th style="width:180px;">TIMESTAMP</th>
+                <th style="width:80px;">LEVEL</th>
+                <th style="width:140px;">CONTAINER</th>
+                <th>MESSAGE</th>
+            </tr>
+        </thead>
+        <tbody id="log-table-body">
+            <!-- Filled by JS -->
+        </tbody>
+    </table>
+    
+    <!-- Floating table controls -->
+    <div class="floating-controls">
+        <div class="fc-toggle">
+            AUTO-SCROLL
+            <div class="fc-toggle-switch on" id="auto-scroll-toggle"></div>
+        </div>
+        <div class="fc-divider"></div>
+        <button class="fc-btn" id="btn-pause">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="4" width="4" height="16"/><rect x="3" y="4" width="4" height="16"/></svg>
+            PAUSE STREAM
+        </button>
+        <div class="fc-divider"></div>
+        <button class="fc-btn">
+            SCROLL TO BOTTOM
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
+        </button>
+    </div>
+</div>
+
+<!-- Bottom Panel -->
+<div class="bottom-panel">
+    <div>
+        <div class="bp-section-title">
+            <span>AGGREGATE STATS (LAST HOUR)</span>
+            <span class="bp-total-logs" id="total-logs-count">--</span>
+        </div>
+        <div class="stats-bar-track">
+            <div class="stats-bar-inf"></div>
+            <div class="stats-bar-wrn"></div>
+            <div class="stats-bar-err"></div>
+        </div>
+        <div class="stats-legend">
+            <span id="stat-info">Info: --</span>
+            <span id="stat-wrn">Warning: --</span>
+            <span id="stat-err">Error: --</span>
+        </div>
+    </div>
+    
+    <div>
+        <div class="bp-section-title">TOP ERROR SOURCES</div>
+        <div class="top-sources-grid" id="top-sources">
+            <!-- Filled by JS -->
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
 <script src="/static/logs.js"></script>
-</body>
-</html>
+{% endblock %}
