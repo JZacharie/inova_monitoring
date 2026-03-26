@@ -3,360 +3,639 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Inova Monitoring | Control Plane</title>
+    <title>INOVA PASX MES — Production Monitoring Dashboard</title>
+    <meta name="description" content="Real-time production monitoring dashboard for INOVA PASX MES - Track container performance, application metrics, and manufacturing output.">
     <link rel="stylesheet" href="/static/style.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <style>
-        /* Embedded Icons Helper */
-        .icon { width: 20px; height: 20px; vertical-align: middle; }
-    </style>
 </head>
 <body>
 
-    <!-- ── Sidebar Navigation ── -->
+<div class="app-layout">
+
+    <!-- ═══ SIDEBAR ═══ -->
     <aside class="sidebar" id="sidebar">
-        <div class="sidebar-toggle" onclick="toggleSidebar()">
-            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+        <div class="sidebar-brand">
+            <div class="brand-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                    <path d="M2 17l10 5 10-5"/>
+                    <path d="M2 12l10 5 10-5"/>
+                </svg>
+            </div>
+            <div class="brand-text">
+                <div class="brand-name">Industrial Intel</div>
+                <div class="brand-sub">Sanofi Ecosystem</div>
+            </div>
         </div>
-        
-        <nav>
-            <a class="nav-item active" onclick="switchSection('dashboards')">
-                <svg class="icon nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-                <span class="nav-text">Dashboards</span>
+
+        <nav class="sidebar-nav">
+            <a class="nav-item active" id="nav-dashboard" onclick="switchSection('dashboard')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
+                <span>Dashboard</span>
             </a>
-            <a class="nav-item" onclick="switchSection('explorer')">
-                <svg class="icon nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-                <span class="nav-text">SQL Explorer</span>
+            <a class="nav-item" id="nav-analytics" onclick="switchSection('analytics')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                <span>Analytics</span>
+            </a>
+            <a class="nav-item" id="nav-assets">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+                <span>Assets</span>
+            </a>
+            <a class="nav-item" id="nav-logs">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                <span>Logs</span>
+            </a>
+            <a class="nav-item" id="nav-reports">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
+                <span>Reports</span>
+            </a>
+
+            <div class="nav-btn-new" onclick="alert('New monitor creation coming soon!')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                <span>New Monitor</span>
+            </div>
+
+            <div class="nav-spacer"></div>
+        </nav>
+
+        <div class="sidebar-footer">
+            <a class="nav-item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                <span>Support</span>
             </a>
             <a class="nav-item">
-                <svg class="icon nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
-                <span class="nav-text">Infrastructure</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                <span>Account</span>
             </a>
-        </nav>
+        </div>
     </aside>
 
-    <main class="main-content" id="main-content">
-        <!-- ── Header (Control Plane) ── -->
-        <header>
-            <div class="breadcrumb">
-                Dashboards > <span>Infrastructure Globale</span>
-            </div>
-            
-            <div class="header-actions">
-                <select class="env-selector">
-                    <option>Production</option>
-                    <option>Staging</option>
-                    <option>Development</option>
-                </select>
-                
-                <div class="global-status">
-                    <div class="status-dot"></div>
-                    All Systems Operational
+    <!-- ═══ MAIN AREA ═══ -->
+    <div class="main-area">
+
+        <!-- ── Top Header ── -->
+        <header class="top-header">
+            <div class="header-left">
+                <div class="header-title">INOVA PASX MES – Production Monitoring Dashboard</div>
+                <div class="header-breadcrumb">
+                    HOME <span class="sep">›</span> DASHBOARDS <span class="sep">›</span> <span>PASX PRODUCTION</span>
                 </div>
-                
-                <div id="ws-badge" class="badge" style="background: #E0E7FF; color: #4338CA;">WS: Connecting…</div>
+            </div>
+
+            <div class="header-center">
+                <div class="time-selector" id="time-selector">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    Last 1 Hour
+                </div>
+                <div class="auto-refresh">
+                    Auto-Refresh
+                    <div class="toggle-switch on" id="auto-refresh-toggle" onclick="this.classList.toggle('on')"></div>
+                </div>
+                <div class="ws-badge-inline connecting" id="ws-badge">
+                    <span class="ws-dot"></span>
+                    WS: Connecting…
+                </div>
+            </div>
+
+            <div class="header-right">
+                <button class="header-icon-btn" title="Notifications">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                    <span class="notif-dot"></span>
+                </button>
+                <button class="header-icon-btn" title="Settings">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                </button>
+                <div class="user-profile">
+                    <div class="user-info">
+                        <div class="user-name">Akhil Teja M.</div>
+                        <div class="user-role">System Admin</div>
+                    </div>
+                    <div class="user-avatar">AT</div>
+                </div>
             </div>
         </header>
 
         <!-- ── Dashboard Viewport ── -->
-        <div class="dashboard-viewport" id="section-dashboards">
-            <div class="monitoring-grid">
-                
-                <!-- Prometheus Widget -->
-                <div class="card" onclick="openDrawer('Prometheus Latency')">
-                    <div class="card-header">
-                        <div class="card-title">
-                            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="#0066CC" stroke-width="2"><path d="M12 2v20M2 12h20"/></svg>
-                            Prometheus
-                        </div>
-                        <span class="badge success">Healthy</span>
+        <div class="dashboard-content" id="section-dashboard">
+
+            <!-- Status Cards Row -->
+            <div class="status-row">
+                <div class="status-card" onclick="openDrawer('System Status')">
+                    <div class="status-card-header">
+                        <span class="status-card-title">System Status</span>
+                        <svg class="status-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
                     </div>
-                    <div class="card-body">
-                        <div class="metric-group">
-                            <div class="metric">
-                                <span class="metric-label">Latency</span>
-                                <span class="metric-value rolling-num" id="prom-latency">42</span><span style="font-size: 0.8rem; color: var(--text-muted)">ms</span>
-                            </div>
-                            <div class="metric">
-                                <span class="metric-label">Error Rate</span>
-                                <span class="metric-value" id="prom-errors">0.02</span><span style="font-size: 0.8rem; color: var(--text-muted)">%</span>
-                            </div>
+                    <div class="status-card-value green" id="sys-status-val">System Healthy</div>
+                    <div class="status-card-sub">All services operational</div>
+                </div>
+
+                <div class="status-card" onclick="openDrawer('Active Containers')">
+                    <div class="status-card-header">
+                        <span class="status-card-title">Active Containers</span>
+                        <span class="status-card-badge badge-up">↑ 3%</span>
+                    </div>
+                    <div class="status-card-value" id="active-containers">47</div>
+                    <div class="status-card-sub">Running Containers</div>
+                </div>
+
+                <div class="status-card" onclick="openDrawer('Failed Containers')">
+                    <div class="status-card-header">
+                        <span class="status-card-title">Failed Containers</span>
+                        <svg class="status-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="12" cy="12" r="10"/></svg>
+                    </div>
+                    <div class="status-card-value green" id="failed-containers">0</div>
+                    <div class="status-card-sub">Healthy Deployment</div>
+                </div>
+
+                <div class="status-card" onclick="openDrawer('System Uptime')">
+                    <div class="status-card-header">
+                        <span class="status-card-title">System Uptime</span>
+                        <svg class="status-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--text-muted);" width="16" height="16"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    </div>
+                    <div class="status-card-value" id="system-uptime">99.97%</div>
+                    <div class="status-card-sub">Last Incident: 12 days ago</div>
+                </div>
+
+                <div class="status-card" onclick="openDrawer('Active Alerts')">
+                    <div class="status-card-header">
+                        <span class="status-card-title">Active Alerts</span>
+                        <svg class="status-card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: var(--accent-yellow);" width="16" height="16"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                    </div>
+                    <div class="status-card-value yellow" id="active-alerts">2</div>
+                    <div class="status-card-sub">Active Warnings</div>
+                </div>
+            </div>
+
+            <!-- Three-Column Panels -->
+            <div class="panels-row">
+
+                <!-- ── CONTAINER PERFORMANCE ── -->
+                <div class="panel">
+                    <div class="panel-title">Container Performance</div>
+
+                    <!-- CPU Usage Chart -->
+                    <div class="chart-block">
+                        <div class="chart-label">
+                            CPU Usage (%)
+                            <span class="threshold">THRES: 80%</span>
                         </div>
-                        <div class="sparkline-container" id="prom-spark" onclick="filterByLatency(event)">
-                            <svg width="100%" height="100%" viewBox="0 0 200 60" style="cursor: pointer;">
-                                <path class="sparkline-path" d="M0,50 L20,40 L40,45 L60,30 L80,35 L100,20 L120,25 L140,15 L160,20 L180,10 L200,15" />
+                        <div class="chart-canvas" id="cpu-chart">
+                            <svg viewBox="0 0 300 80" preserveAspectRatio="none">
+                                <path class="spark-line purple" d="M0,60 C20,58 40,55 60,50 C80,45 100,40 120,42 C140,44 160,38 180,35 C200,32 220,30 240,28 C260,26 280,25 300,24" />
+                                <line x1="0" y1="16" x2="300" y2="16" stroke="var(--accent-yellow)" stroke-width="1" stroke-dasharray="6,4" opacity="0.5"/>
+                            </svg>
+                        </div>
+                    </div>
+
+                    <!-- Memory Usage Chart -->
+                    <div class="chart-block">
+                        <div class="chart-label">
+                            Memory Usage (GB)
+                            <span class="threshold">0–16 GB</span>
+                        </div>
+                        <div class="chart-canvas" id="mem-chart">
+                            <svg viewBox="0 0 300 80" preserveAspectRatio="none">
+                                <path class="spark-line green" d="M0,65 C30,60 60,58 90,55 C120,52 150,48 180,44 C210,40 240,36 270,33 C285,31 300,30 300,30" />
+                                <line x1="0" y1="40" x2="300" y2="40" stroke="var(--accent-yellow)" stroke-width="1" stroke-dasharray="6,4" opacity="0.4"/>
+                            </svg>
+                        </div>
+                    </div>
+
+                    <!-- Network I/O Chart -->
+                    <div class="chart-block">
+                        <div class="chart-label">
+                            Network I/O (MB/s)
+                            <span style="font-size:0.6rem; color: var(--text-muted);">● IN &nbsp; ● OUT</span>
+                        </div>
+                        <div class="chart-canvas" id="net-chart">
+                            <svg viewBox="0 0 300 80" preserveAspectRatio="none">
+                                <path class="spark-area purple" d="M0,70 C30,55 60,50 90,45 C120,40 150,38 180,42 C210,46 240,35 270,30 C285,28 300,25 300,25 L300,80 L0,80 Z"/>
+                                <path class="spark-line purple" d="M0,70 C30,55 60,50 90,45 C120,40 150,38 180,42 C210,46 240,35 270,30 C285,28 300,25 300,25"/>
+                                <path class="spark-area green" d="M0,75 C30,68 60,65 90,60 C120,55 150,50 180,52 C210,54 240,48 270,42 C285,40 300,38 300,38 L300,80 L0,80 Z"/>
+                                <path class="spark-line green" d="M0,75 C30,68 60,65 90,60 C120,55 150,50 180,52 C210,54 240,48 270,42 C285,40 300,38 300,38"/>
                             </svg>
                         </div>
                     </div>
                 </div>
 
-                <!-- SQL Database Widget -->
-                <div class="card" onclick="openDrawer('SQL Connections')">
-                    <div class="card-header">
-                        <div class="card-title">
-                            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="#0066CC" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
-                            SQL Database
-                        </div>
-                        <span class="badge success">Healthy</span>
-                    </div>
-                    <div class="card-body" style="flex-direction: row; align-items: center; justify-content: space-between;">
-                        <div class="metric">
-                            <span class="metric-label">Active Conn.</span>
-                            <span class="metric-value rolling-num" id="db-conns">124</span>
-                        </div>
-                        <div class="gauge-container">
-                            <svg viewBox="0 0 36 36" style="width: 80px; height: 80px;">
-                                <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="#E5E7EB" stroke-width="3"/>
-                                <path id="db-gauge" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="var(--primary)" stroke-width="3" stroke-dasharray="75, 100"/>
-                                <text x="18" y="20.35" text-anchor="middle" font-size="8" font-weight="800">75%</text>
+                <!-- ── APPLICATION METRICS ── -->
+                <div class="panel">
+                    <div class="panel-title">Application Metrics</div>
+
+                    <!-- Throughput -->
+                    <div class="throughput-block">
+                        <div class="throughput-ring">
+                            <svg viewBox="0 0 36 36">
+                                <circle cx="18" cy="18" r="15.9155" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="3"/>
+                                <circle cx="18" cy="18" r="15.9155" fill="none" stroke="var(--accent-yellow)" stroke-width="3" stroke-dasharray="68, 100" stroke-linecap="round" id="throughput-ring-path"/>
                             </svg>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- RabbitMQ Widget -->
-                <div class="card" onclick="openDrawer('RabbitMQ Queues')">
-                    <div class="card-header">
-                        <div class="card-title">RabbitMQ</div>
-                        <span class="badge success">Healthy</span>
-                    </div>
-                    <div class="card-body">
-                        <div class="metric-group">
-                            <div class="metric">
-                                <span class="metric-label">Ready</span>
-                                <span class="metric-value rolling-num" id="rb-ready">1240</span>
-                            </div>
-                            <div class="metric">
-                                <span class="metric-label">Rate</span>
-                                <span class="metric-value" id="rb-rate">450</span><span style="font-size: 0.8rem; color: var(--text-muted)">msg/s</span>
+                            <div class="ring-value">
+                                <span id="throughput-val">245</span>
+                                <span class="ring-unit">MS</span>
                             </div>
                         </div>
+                        <div class="throughput-details">
+                            <div class="label">Throughput</div>
+                            <div class="throughput-bar"><span class="bar-label">Success</span><div class="bar-track"><div class="bar-fill green" style="width:88%" id="tp-success"></div></div><span class="bar-value">88%</span></div>
+                            <div class="throughput-bar"><span class="bar-label">Warning</span><div class="bar-track"><div class="bar-fill yellow" style="width:9%" id="tp-warning"></div></div><span class="bar-value">9%</span></div>
+                            <div class="throughput-bar"><span class="bar-label">Error</span><div class="bar-track"><div class="bar-fill red" style="width:3%" id="tp-error"></div></div><span class="bar-value">3%</span></div>
+                        </div>
+                        <div class="metric-tile-sub" style="align-self: flex-end;">API RESPONSE<br><span class="metric-tile-change up">↓ 12%</span></div>
                     </div>
-                </div>
 
-                <!-- Users Widget -->
-                <div class="card">
-                    <div class="card-header">
-                        <div class="card-title">User sessions</div>
+                    <!-- Error Rate & Sessions -->
+                    <div class="metric-tiles">
+                        <div class="metric-tile">
+                            <div class="metric-tile-label">
+                                Error Rate
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/></svg>
+                            </div>
+                            <div class="metric-tile-value" id="error-rate">0.3<span class="unit">%</span></div>
+                            <div class="metric-tile-spark">
+                                <svg viewBox="0 0 120 30" preserveAspectRatio="none">
+                                    <path class="spark-line green" d="M0,25 C15,22 30,18 45,20 C60,22 75,15 90,12 C105,9 120,5 120,5"/>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="metric-tile">
+                            <div class="metric-tile-label">
+                                Sessions
+                                <span class="metric-tile-change up" style="margin-left:auto;">↑ 8%</span>
+                            </div>
+                            <div class="metric-tile-value" id="sessions-val">1,247</div>
+                            <div class="metric-tile-spark">
+                                <svg viewBox="0 0 120 30" preserveAspectRatio="none">
+                                    <path class="spark-line purple" d="M0,28 C20,24 40,20 60,16 C80,12 100,8 120,4"/>
+                                </svg>
+                            </div>
+                        </div>
                     </div>
-                    <div class="card-body">
-                        <div class="metric">
-                            <span class="metric-label">Live Users</span>
-                            <span class="metric-value rolling-num" style="color: var(--primary); font-family: monospace; font-size: 2.5rem;" id="user-live">892</span>
+
+                    <!-- AI Recommendation -->
+                    <div class="recommendation-card">
+                        <div class="recommendation-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 1 1 7.072 0l-.548.547A3.374 3.374 0 0 0 12 18.469a3.374 3.374 0 0 0-.965-1.96l-.548-.547z"/></svg>
+                        </div>
+                        <div class="recommendation-text">
+                            <h4>Optimization Recommendation</h4>
+                            <p>Scale up PASX-APP node group 3 for high session volume expected at 14:00.</p>
                         </div>
                     </div>
                 </div>
 
+                <!-- ── MANUFACTURING METRICS ── -->
+                <div class="panel">
+                    <div class="panel-title">Manufacturing Metrics</div>
+
+                    <!-- Batch Processing Status -->
+                    <div class="chart-block">
+                        <div class="chart-label">Batch Processing Status</div>
+                        <div class="batch-list">
+                            <div class="batch-item">
+                                <span class="batch-label">Batch #2024-03-001</span>
+                                <div class="batch-bar-track"><div class="batch-bar-fill b1" style="width:75%"></div></div>
+                                <span class="batch-value">75%</span>
+                            </div>
+                            <div class="batch-item">
+                                <span class="batch-label">Batch #2024-03-002</span>
+                                <div class="batch-bar-track"><div class="batch-bar-fill b2" style="width:42%"></div></div>
+                                <span class="batch-value">42%</span>
+                            </div>
+                            <div class="batch-item">
+                                <span class="batch-label">Batch #2024-03-003</span>
+                                <div class="batch-bar-track"><div class="batch-bar-fill b3" style="width:12%"></div></div>
+                                <span class="batch-value">12%</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Success Rate + Production Output -->
+                    <div style="display:flex; gap:16px; align-items:center;">
+                        <div class="success-ring">
+                            <svg viewBox="0 0 36 36">
+                                <circle cx="18" cy="18" r="15.9155" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="3"/>
+                                <circle cx="18" cy="18" r="15.9155" fill="none" stroke="var(--accent-green)" stroke-width="3" stroke-dasharray="98.5, 100" stroke-linecap="round" id="success-ring-path"/>
+                            </svg>
+                            <div class="ring-value">
+                                <span class="ring-pct" id="success-pct">98.5%</span>
+                                <span class="ring-label">Success Rate</span>
+                            </div>
+                        </div>
+                        <div class="production-output">
+                            <span class="po-label">Production Output</span>
+                            <span class="po-value" id="prod-output">2,847<span class="po-unit">units</span></span>
+                        </div>
+                        <div style="margin-left:auto; display:flex; flex-direction:column; align-items:center;">
+                            <div class="production-bars">
+                                <div class="production-bar" style="height:25px"></div>
+                                <div class="production-bar" style="height:35px"></div>
+                                <div class="production-bar" style="height:45px"></div>
+                                <div class="production-bar" style="height:30px"></div>
+                                <div class="production-bar" style="height:50px"></div>
+                            </div>
+                            <div class="production-bars-label">Target</div>
+                        </div>
+                    </div>
+
+                    <!-- Equipment Health -->
+                    <div class="chart-block">
+                        <div class="equipment-section-title">Equipment Health</div>
+                        <div class="equipment-list">
+                            <div class="equipment-item">
+                                <div class="equipment-name">
+                                    <span class="equipment-dot green"></span>
+                                    Bioreactor-01
+                                </div>
+                                <span class="equipment-status operational">Operational</span>
+                            </div>
+                            <div class="equipment-item">
+                                <div class="equipment-name">
+                                    <span class="equipment-dot yellow"></span>
+                                    Filter-03
+                                </div>
+                                <span class="equipment-status maintenance">Maint. Due</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── ALERTS & INCIDENTS ── -->
+            <div class="alerts-section">
+                <div class="alerts-header">
+                    <div class="alerts-title">Alerts & Incidents</div>
+                    <div class="alerts-count" id="alerts-count">Showing 5 of 47 alerts</div>
+                </div>
+                <table class="alerts-table" id="alerts-table">
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>Severity</th>
+                            <th>Alert Name</th>
+                            <th>Status</th>
+                            <th>MTTR</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>14:23</td>
+                            <td><span class="severity-badge severity-critical">Critical</span></td>
+                            <td>CPU spike on PASX-APP-03</td>
+                            <td><span class="status-badge status-active">Active</span></td>
+                            <td>—</td>
+                            <td><button class="action-btn" onclick="openDrawer('CPU spike on PASX-APP-03')">View</button></td>
+                        </tr>
+                        <tr>
+                            <td>13:45</td>
+                            <td><span class="severity-badge severity-warning">Warning</span></td>
+                            <td>Memory threshold exceeded Batch-02</td>
+                            <td><span class="status-badge status-acknowledged">Acknowledged</span></td>
+                            <td>12 min</td>
+                            <td><button class="action-btn" onclick="openDrawer('Memory threshold exceeded')">View</button></td>
+                        </tr>
+                        <tr>
+                            <td>12:11</td>
+                            <td><span class="severity-badge severity-info">Info</span></td>
+                            <td>Auto-scale triggered node group 2</td>
+                            <td><span class="status-badge status-resolved">Resolved</span></td>
+                            <td>3 min</td>
+                            <td><button class="action-btn" onclick="openDrawer('Auto-scale triggered')">View</button></td>
+                        </tr>
+                        <tr>
+                            <td>11:30</td>
+                            <td><span class="severity-badge severity-warning">Warning</span></td>
+                            <td>Network latency spike — region EU-West</td>
+                            <td><span class="status-badge status-resolved">Resolved</span></td>
+                            <td>8 min</td>
+                            <td><button class="action-btn" onclick="openDrawer('Network latency spike')">View</button></td>
+                        </tr>
+                        <tr>
+                            <td>10:05</td>
+                            <td><span class="severity-badge severity-critical">Critical</span></td>
+                            <td>Database connection pool exhaustion</td>
+                            <td><span class="status-badge status-resolved">Resolved</span></td>
+                            <td>22 min</td>
+                            <td><button class="action-btn" onclick="openDrawer('DB connection pool')">View</button></td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
         </div>
 
-        <!-- ── SQL Explorer Viewport (Legacy integration) ── -->
-        <div class="dashboard-viewport" id="section-explorer" style="display: none;">
-             <div class="card">
-                <div class="card-header">
-                    <div class="card-title">Query Console</div>
+        <!-- ── SQL Explorer (hidden by default) ── -->
+        <div class="dashboard-content explorer-section" id="section-analytics">
+            <div class="query-console">
+                <div class="panel-title" style="margin-bottom: 16px;">Query Console</div>
+                <div class="query-input-row">
+                    <input type="text" class="query-input" id="query-input" value="SELECT current_database(), now();">
+                    <button class="query-btn" id="run-query">Execute</button>
                 </div>
-                <div class="card-body">
-                    <div style="display: flex; gap: 12px; margin-bottom: 20px;">
-                        <input type="text" id="query-input" style="flex: 1; padding: 10px; border: 1px solid var(--border); border-radius: var(--radius);" value="SELECT current_database(), now();">
-                        <button id="run-query" style="background: var(--primary); color: white; padding: 0 20px; border: none; border-radius: var(--radius); cursor: pointer; font-weight: 600;">Execute</button>
-                    </div>
-                    <div id="query-result-wrapper" style="overflow-x: auto;">
-                        <table style="width: 100%; border-collapse: collapse;">
-                            <thead id="table-head"></thead>
-                            <tbody id="table-body"></tbody>
-                        </table>
-                    </div>
+                <div style="overflow-x: auto;">
+                    <table class="results-table">
+                        <thead id="table-head"></thead>
+                        <tbody id="table-body"></tbody>
+                    </table>
                 </div>
-             </div>
+            </div>
         </div>
-    </main>
 
-    <!-- ── Interaction Layers ── -->
-    <div class="overlay" id="overlay" onclick="closeDrawer()"></div>
-    <div class="drawer" id="drawer">
-        <h2 id="drawer-title" style="margin-bottom: 20px;">Details</h2>
-        <div id="drawer-content" style="color: var(--text-muted); font-size: 0.9rem; line-height: 1.6;">
-            <p>Loading drill-down data for OpenShift 2026 panel...</p>
-        </div>
-        <button onclick="closeDrawer()" style="margin-top: 40px; background: none; border: 1px solid var(--border); padding: 8px 16px; border-radius: 4px; cursor: pointer;">Close Panel</button>
     </div>
+</div>
 
-    <script>
-        // ── State ──────────────────────────────────────────────────
-        let socket = null;
-        const metrics = {
-            'prom-latency': 42,
-            'rb-ready': 1240,
-            'db-conns': 124,
-            'user-live': 892
+<!-- ── Interaction Layers ── -->
+<div class="overlay" id="overlay" onclick="closeDrawer()"></div>
+<div class="drawer" id="drawer">
+    <h2 id="drawer-title">Details</h2>
+    <div id="drawer-content" style="margin-top:16px; color: var(--text-muted); font-size: 0.85rem; line-height: 1.7;">
+        <p>Loading drill-down data…</p>
+    </div>
+    <button class="drawer-close-btn" onclick="closeDrawer()">Close Panel</button>
+</div>
+
+<script>
+    /* ══════════════════════════════════════════════════════
+       INOVA PASX MES — Dashboard Logic
+       ══════════════════════════════════════════════════════ */
+
+    // ── State ──
+    let socket = null;
+    const metrics = {
+        'active-containers': 47,
+        'failed-containers': 0,
+        'active-alerts': 2,
+    };
+
+    // ── Navigation ──
+    function switchSection(section) {
+        // Hide all sections
+        document.getElementById('section-dashboard').style.display = 'none';
+        document.getElementById('section-analytics').style.display = 'none';
+        document.getElementById('section-analytics').classList.remove('active');
+
+        // Show selected
+        if (section === 'dashboard') {
+            document.getElementById('section-dashboard').style.display = 'block';
+        } else if (section === 'analytics') {
+            document.getElementById('section-analytics').style.display = 'block';
+            document.getElementById('section-analytics').classList.add('active');
+        }
+
+        // Active state on nav
+        document.querySelectorAll('.sidebar-nav .nav-item').forEach(i => i.classList.remove('active'));
+        const btn = document.getElementById(`nav-${section}`);
+        if (btn) btn.classList.add('active');
+    }
+
+    // ── Drawer ──
+    function openDrawer(title) {
+        const drawer = document.getElementById('drawer');
+        const overlay = document.getElementById('overlay');
+        const content = document.getElementById('drawer-content');
+        document.getElementById('drawer-title').textContent = title;
+
+        if (title.includes('System Status')) {
+            content.innerHTML = `
+                <div class="metric-row"><strong>Service Health:</strong> All Operational</div>
+                <div class="metric-row"><strong>API Gateway:</strong> Healthy</div>
+                <div class="metric-row"><strong>Database Cluster:</strong> 3/3 Nodes Active</div>
+                <div class="metric-row"><strong>Message Queue:</strong> Healthy</div>
+            `;
+        } else if (title.includes('Active Containers')) {
+            content.innerHTML = `
+                <div class="metric-row"><strong>Running:</strong> 47</div>
+                <div class="metric-row"><strong>Pending:</strong> 2</div>
+                <div class="metric-row"><strong>Restarted (24h):</strong> 3</div>
+                <div class="metric-row"><strong>Resource Utilization:</strong> 68%</div>
+            `;
+        } else if (title.includes('CPU spike')) {
+            content.innerHTML = `
+                <div class="metric-row"><strong>Node:</strong> PASX-APP-03</div>
+                <div class="metric-row"><strong>CPU:</strong> 94.2%</div>
+                <div class="metric-row"><strong>Duration:</strong> 12 min</div>
+                <div class="metric-row"><strong>Root Cause:</strong> Batch processing spike</div>
+                <div class="metric-row"><strong>Action Taken:</strong> Auto-scale initiated</div>
+            `;
+        } else {
+            content.innerHTML = `
+                <div class="metric-row"><strong>Alert:</strong> ${title}</div>
+                <div class="metric-row"><strong>Timestamp:</strong> ${new Date().toLocaleTimeString()}</div>
+                <div class="metric-row"><strong>Impact:</strong> Moderate</div>
+                <div class="metric-row"><strong>Resolution:</strong> Investigating</div>
+            `;
+        }
+
+        drawer.classList.add('open');
+        overlay.classList.add('visible');
+    }
+
+    function closeDrawer() {
+        document.getElementById('drawer').classList.remove('open');
+        document.getElementById('overlay').classList.remove('visible');
+    }
+
+    // ── WebSocket ──
+    function connect() {
+        const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+        socket = new WebSocket(`${proto}://${location.host}/ws`);
+        const badge = document.getElementById('ws-badge');
+
+        socket.onopen = () => {
+            badge.className = 'ws-badge-inline';
+            badge.innerHTML = '<span class="ws-dot"></span> Live Connection';
         };
 
-        // ── Navigation ────────────────────────────────────────────────
-        function toggleSidebar() {
-            document.getElementById('sidebar').classList.toggle('collapsed');
-            document.getElementById('main-content').classList.toggle('expanded');
+        socket.onmessage = (e) => {
+            const msg = JSON.parse(e.data);
+            if (msg.type === 'query_result') renderTable(msg.payload);
+            if (msg.type === 'query_error') alert('Query Error: ' + msg.payload.detail);
+        };
+
+        socket.onclose = () => {
+            badge.className = 'ws-badge-inline reconnecting';
+            badge.innerHTML = '<span class="ws-dot"></span> Reconnecting…';
+            setTimeout(connect, 3000);
+        };
+    }
+
+    function renderTable({ columns, rows }) {
+        const head = document.getElementById('table-head');
+        const body = document.getElementById('table-body');
+        head.innerHTML = ''; body.innerHTML = '';
+
+        if (!columns || !columns.length) {
+            body.innerHTML = '<tr><td colspan="100%" style="text-align:center; padding:40px; color:var(--text-muted);">No results.</td></tr>';
+            return;
         }
 
-        function switchSection(section) {
-            document.querySelectorAll('.dashboard-viewport').forEach(v => v.style.display = 'none');
-            document.getElementById(`section-${section}`).style.display = 'block';
-            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-            const btn = document.querySelector(`[onclick*="${section}"]`);
-            if (btn) btn.classList.add('active');
-        }
+        const trH = document.createElement('tr');
+        columns.forEach(c => {
+            const th = document.createElement('th');
+            th.textContent = c.replace(/_/g, ' ');
+            trH.appendChild(th);
+        });
+        head.appendChild(trH);
 
-        function openDrawer(title) {
-            const drawer = document.getElementById('drawer');
-            const overlay = document.getElementById('overlay');
-            const content = document.getElementById('drawer-content');
-            
-            document.getElementById('drawer-title').textContent = title;
-            
-            // Contextual Drill-down Content
-            if (title.includes('Prometheus')) {
-                content.innerHTML = `
-                    <div class="metric-row"><strong>Avg Latency:</strong> 42.4ms</div>
-                    <div class="metric-row"><strong>P99 Latency:</strong> 120.1ms</div>
-                    <div class="metric-row"><strong>Active Scrapes:</strong> 12</div>
-                    <div style="margin-top:20px; height:100px; background:#F9FAFB; border-radius:4px; border:1px dashed #CCC; display:flex; align-items:center; justify-content:center;">Graph Detail View</div>
-                `;
-            } else if (title.includes('SQL')) {
-                content.innerHTML = `
-                    <div class="metric-row"><strong>Max Connections:</strong> 500</div>
-                    <div class="metric-row"><strong>Cache Hit Ratio:</strong> 99.2%</div>
-                    <div class="metric-row"><strong>Slow Queries:</strong> 3 (last 1h)</div>
-                `;
-            } else if (title.includes('RabbitMQ')) {
-                content.innerHTML = `
-                    <div class="metric-row"><strong>Queues:</strong> 24</div>
-                    <div class="metric-row"><strong>Consumers:</strong> 156</div>
-                    <div class="metric-row"><strong>Unacked:</strong> 12</div>
-                `;
-            }
-
-            drawer.classList.add('open');
-            overlay.classList.add('visible');
-        }
-
-        function closeDrawer() {
-            document.getElementById('drawer').classList.remove('open');
-            document.getElementById('overlay').classList.remove('visible');
-        }
-
-        // ── WebSocket & SQL Explorer ─────────────────────────────────
-        function connect() {
-            const proto = location.protocol === 'https:' ? 'wss' : 'ws';
-            socket = new WebSocket(`${proto}://${location.host}/ws`);
-            
-            socket.onopen = () => { 
-                document.getElementById('ws-badge').textContent = 'Live Connection';
-                document.getElementById('ws-badge').style.background = '#DCFCE7';
-                document.getElementById('ws-badge').style.color = '#166534';
-            };
-            
-            socket.onmessage = (e) => { 
-                const msg = JSON.parse(e.data);
-                if (msg.type === 'query_result') renderTable(msg.payload);
-                if (msg.type === 'query_error') alert('Query Error: ' + msg.payload.detail);
-            };
-
-            socket.onclose = () => {
-                document.getElementById('ws-badge').textContent = 'Reconnecting…';
-                document.getElementById('ws-badge').style.background = '#FEF3C7';
-                document.getElementById('ws-badge').style.color = '#92400E';
-                setTimeout(connect, 3000);
-            };
-        }
-
-        function renderTable({ columns, rows }) {
-            const head = document.getElementById('table-head');
-            const body = document.getElementById('table-body');
-            head.innerHTML = ''; body.innerHTML = '';
-            
-            if (!columns.length) {
-                body.innerHTML = '<tr><td colspan="100%" style="text-align:center; padding:40px; color:#6B7280;">No results.</td></tr>';
-                return;
-            }
-
-            const trH = document.createElement('tr');
+        rows.forEach(r => {
+            const tr = document.createElement('tr');
+            tr.classList.add('fade-in');
             columns.forEach(c => {
-                const th = document.createElement('th');
-                th.textContent = c.replace(/_/g, ' ');
-                th.style.padding = '12px'; th.style.textAlign = 'left'; th.style.borderBottom = '1px solid var(--border)';
-                th.style.fontSize = '0.75rem'; th.style.color = 'var(--text-muted)'; th.style.textTransform = 'uppercase';
-                trH.appendChild(th);
+                const td = document.createElement('td');
+                td.textContent = r[c] ?? 'NULL';
+                tr.appendChild(td);
             });
-            head.appendChild(trH);
-            
-            rows.forEach((r, i) => {
-                const tr = document.createElement('tr');
-                columns.forEach(c => {
-                    const td = document.createElement('td');
-                    td.textContent = r[c] ?? 'NULL';
-                    td.style.padding = '12px'; td.style.borderBottom = '1px solid var(--border)';
-                    tr.appendChild(td);
-                });
-                body.appendChild(tr);
-            });
+            body.appendChild(tr);
+        });
+    }
+
+    // ── Micro Animations ──
+    function animateValue(id, start, end, duration) {
+        const obj = document.getElementById(id);
+        if (!obj) return;
+        const range = end - start;
+        if (range === 0) return;
+        let startTime = performance.now();
+
+        function run(now) {
+            let progress = Math.min((now - startTime) / duration, 1);
+            let value = Math.round(start + progress * range);
+            obj.textContent = value;
+            if (progress < 1) requestAnimationFrame(run);
+        }
+        requestAnimationFrame(run);
+    }
+
+    function simulateMetrics() {
+        // Slight random walk on containers
+        const oldContainers = metrics['active-containers'];
+        const delta = Math.floor(Math.random() * 4) - 1;
+        const newContainers = Math.max(40, Math.min(55, oldContainers + delta));
+        animateValue('active-containers', oldContainers, newContainers, 800);
+        metrics['active-containers'] = newContainers;
+
+        // Occasionally bump alerts
+        if (Math.random() > 0.85) {
+            const oldAlerts = metrics['active-alerts'];
+            const newAlerts = Math.max(0, Math.min(6, oldAlerts + (Math.random() > 0.5 ? 1 : -1)));
+            animateValue('active-alerts', oldAlerts, newAlerts, 800);
+            metrics['active-alerts'] = newAlerts;
         }
 
-        // ── Micro-Animations ─────────────────────────────────────────
-        function animateValue(id, start, end, duration) {
-            const obj = document.getElementById(id);
-            if (!obj) return;
-            const range = end - start;
-            const stepTime = Math.abs(Math.floor(duration / range));
-            let startTime = new Date().getTime();
-            let endTime = startTime + duration;
-            let timer;
+        setTimeout(simulateMetrics, 5000);
+    }
 
-            function run() {
-                let now = new Date().getTime();
-                let remaining = Math.max((endTime - now) / duration, 0);
-                let value = Math.round(end - (remaining * range));
-                obj.innerHTML = value;
-                if (value == end) clearInterval(timer);
-            }
-            timer = setInterval(run, stepTime || 10);
-            run();
+    // ── Boot ──
+    connect();
+    simulateMetrics();
+
+    document.getElementById('run-query').onclick = () => {
+        const sql = document.getElementById('query-input').value;
+        if (socket && socket.readyState === WebSocket.OPEN) {
+            socket.send(JSON.stringify({ type: 'query_request', payload: { sql } }));
         }
-
-        function simulateMetrics() {
-            // Random walk for metrics
-            for (let key in metrics) {
-                const oldVal = metrics[key];
-                const delta = Math.floor(Math.random() * 10) - 4;
-                const newVal = Math.max(0, oldVal + delta);
-                animateValue(key, oldVal, newVal, 1000);
-                metrics[key] = newVal;
-            }
-
-            // Update DB Gauge
-            const dash = Math.floor(Math.random() * 30) + 60;
-            document.getElementById('db-gauge').setAttribute('stroke-dasharray', `${dash}, 100`);
-            
-            setTimeout(simulateMetrics, 5000);
-        }
-
-        function filterByLatency(e) {
-            e.stopPropagation(); // Avoid opening drawer
-            switchSection('explorer');
-            document.getElementById('query-input').value = "SELECT * FROM vsessioninfo WHERE logontime > NOW() - INTERVAL '1 hour' ORDER BY logontime DESC LIMIT 50;";
-            document.getElementById('run-query').click();
-        }
-
-        // ── Boot ──
-        connect();
-        simulateMetrics();
-        document.getElementById('run-query').onclick = () => {
-             const sql = document.getElementById('query-input').value;
-             if (socket && socket.readyState === WebSocket.OPEN) {
-                 socket.send(JSON.stringify({ type: 'query_request', payload: { sql } }));
-             }
-        };
-    </script>
+    };
+</script>
 </body>
 </html>
