@@ -41,8 +41,9 @@ app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="stat
 async def read_root(request: Request) -> HTMLResponse:
     """Render the monitoring dashboard."""
     return templates.TemplateResponse(
-        "index.html",
-        {"request": request, "title": "Inova Apps Monitoring"},
+        request=request,
+        name="index.html",
+        context={"title": "Inova Apps Monitoring"},
     )
 
 
