@@ -1,7 +1,7 @@
 import json
 import time
 import httpx
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any
 from prometheus_client.parser import text_string_to_metric_families
 from .config import settings
 

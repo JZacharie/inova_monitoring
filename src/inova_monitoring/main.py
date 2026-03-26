@@ -8,6 +8,10 @@ WebSocket message flow
     Server → { type: "welcome",       payload: { message, version } }
 """
 
+from __future__ import annotations
+
+from typing import Any
+
 import httpx
 import json
 from pathlib import Path
