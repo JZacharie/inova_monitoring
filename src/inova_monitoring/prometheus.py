@@ -5,6 +5,7 @@ from typing import List, Dict, Any
 from prometheus_client.parser import text_string_to_metric_families
 from .config import settings
 
+
 class PrometheusMetricsFetcher:
     def __init__(self):
         self.endpoints = self._parse_endpoints()
@@ -24,16 +25,18 @@ class PrometheusMetricsFetcher:
         async with httpx.AsyncClient(timeout=10.0) as client:
             for endpoint in self.endpoints:
                 name = endpoint.get("name", endpoint.get("url"))
-                
+
                 # Check cache
                 cached_data = self.cache.get(name)
-                if cached_data and (time.time() - cached_data["timestamp"] < self.cache_ttl):
+                if cached_data and (
+                    time.time() - cached_data["timestamp"] < self.cache_ttl
+                ):
                     results[name] = cached_data["data"]
                     continue
 
                 url = endpoint.get("url")
                 auth_type = endpoint.get("auth_type")
-                
+
                 headers = {}
                 auth = None
 
@@ -45,23 +48,20 @@ class PrometheusMetricsFetcher:
                 try:
                     response = await client.get(url, headers=headers, auth=auth)
                     response.raise_for_status()
-                    
+
                     metrics = self._parse_prometheus_text(response.text)
-                    
+
                     # Update cache
                     self.cache[name] = {
                         "timestamp": time.time(),
-                        "data": {
-                            "status": "online",
-                            "metrics": metrics
-                        }
+                        "data": {"status": "online", "metrics": metrics},
                     }
                     results[name] = self.cache[name]["data"]
                 except Exception as e:
                     results[name] = {
                         "status": "offline",
                         "error": str(e),
-                        "metrics": []
+                        "metrics": [],
                     }
         return results
 
@@ -73,20 +73,23 @@ class PrometheusMetricsFetcher:
                     "name": family.name,
                     "help": family.documentation,
                     "type": family.type,
-                    "samples": []
+                    "samples": [],
                 }
                 for sample in family.samples:
-                    family_data["samples"].append({
-                        "name": sample.name,
-                        "labels": sample.labels,
-                        "value": sample.value,
-                        "timestamp": sample.timestamp
-                    })
+                    family_data["samples"].append(
+                        {
+                            "name": sample.name,
+                            "labels": sample.labels,
+                            "value": sample.value,
+                            "timestamp": sample.timestamp,
+                        }
+                    )
                 metrics.append(family_data)
         except Exception:
             # If parsing fails, return empty
             pass
         return metrics
+
 
 # Singleton instance
 metrics_fetcher = PrometheusMetricsFetcher()

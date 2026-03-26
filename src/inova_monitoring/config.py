@@ -23,7 +23,9 @@ class Settings(BaseSettings):
 
     # ArgoCD Configuration
     argocd_url: str = Field(default="https://argocd.inova.local", alias="ARGOCD_URL")
-    argocd_token: str | None = Field(default=None, alias="ARGOCD_TOKEN") # Required for API calls
+    argocd_token: str | None = Field(
+        default=None, alias="ARGOCD_TOKEN"
+    )  # Required for API calls
     argocd_verify_ssl: bool = Field(default=False, alias="ARGOCD_VERIFY_SSL")
 
     # SSO Configuration

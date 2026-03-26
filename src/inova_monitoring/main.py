@@ -314,7 +314,7 @@ async def get_instances(request: Request):
     user = get_current_user(request)
     if not user:
         return {"detail": "Unauthorized"}
-    
+
     try:
         # Fetch instances from database
         query = "SELECT * FROM instances ORDER BY name ASC"
@@ -332,7 +332,7 @@ async def get_instance_status(instance_id: int):
         result = execute_query(query, {"id": instance_id})
         if not result:
             return {"error": "Instance not found"}
-        
+
         app_name = result[0]["argocd_app_name"]
         if not app_name:
             return {"status": "unknown", "message": "No ArgoCD app configured"}
@@ -340,13 +340,14 @@ async def get_instance_status(instance_id: int):
         # If token is not set, return a mock status for demonstration
         if not settings.argocd_token:
             import random
+
             statuses = ["Synced", "OutOfSync"]
             healths = ["Healthy", "Degraded", "Progressing"]
             return {
                 "sync_status": random.choice(statuses),
                 "health_status": random.choice(healths),
                 "repo_url": "https://github.com/JZacharie/inova_monitoring",
-                "rev": "v3.4.5"
+                "rev": "v3.4.5",
             }
 
         # Real API call to ArgoCD
@@ -354,17 +355,22 @@ async def get_instance_status(instance_id: int):
             headers = {"Authorization": f"Bearer {settings.argocd_token}"}
             url = f"{settings.argocd_url}/api/v1/applications/{app_name}"
             resp = await client.get(url, headers=headers)
-            
+
             if resp.status_code == 200:
                 data = resp.json()
                 return {
                     "sync_status": data.get("status", {}).get("sync", {}).get("status"),
-                    "health_status": data.get("status", {}).get("health", {}).get("status"),
+                    "health_status": data.get("status", {})
+                    .get("health", {})
+                    .get("status"),
                     "repo_url": data.get("spec", {}).get("source", {}).get("repoURL"),
-                    "rev": data.get("status", {}).get("sync", {}).get("revision")
+                    "rev": data.get("status", {}).get("sync", {}).get("revision"),
                 }
             else:
-                return {"error": f"ArgoCD API Error: {resp.status_code}", "detail": resp.text}
+                return {
+                    "error": f"ArgoCD API Error: {resp.status_code}",
+                    "detail": resp.text,
+                }
 
     except Exception as e:
         return {"error": str(e)}
@@ -389,7 +395,7 @@ async def get_metrics(request: Request):
     user = get_current_user(request)
     if not user:
         return {"detail": "Unauthorized"}
-    
+
     metrics = await metrics_fetcher.fetch_metrics()
     return metrics
 
