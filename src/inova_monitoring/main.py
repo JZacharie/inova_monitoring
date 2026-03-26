@@ -267,10 +267,10 @@ async def read_root(request: Request):
         request=request,
         name="index.html",
         context={
-            "title": "Inova Apps Monitoring", 
-            "user": user, 
+            "title": "Inova Apps Monitoring",
+            "user": user,
             "active_page": "dashboard",
-            "section": section
+            "section": section,
         },
     )
 
@@ -284,7 +284,11 @@ async def read_users(request: Request):
     return templates.TemplateResponse(
         request=request,
         name="users.html",
-        context={"title": "User Activity & Profiling", "user": user, "active_page": "users"},
+        context={
+            "title": "User Activity & Profiling",
+            "user": user,
+            "active_page": "users",
+        },
     )
 
 
