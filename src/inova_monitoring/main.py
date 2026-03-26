@@ -103,7 +103,9 @@ async def login_page(request: Request, error: str | None = None):
     methods = [m.strip().lower() for m in allowed]
 
     return templates.TemplateResponse(
-        "login.html", {"request": request, "methods": methods, "error": error}
+        request=request,
+        name="login.html",
+        context={"methods": methods, "error": error},
     )
 
 
