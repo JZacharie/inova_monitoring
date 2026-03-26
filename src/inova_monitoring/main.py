@@ -10,6 +10,8 @@ WebSocket message flow
 
 from __future__ import annotations
 
+from typing import Any
+
 import json
 from pathlib import Path
 
@@ -56,7 +58,7 @@ templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
 
 
-from typing import Any
+
 
 def get_current_user(request: Request) -> Any:
     """Helper to get authentication user from session."""
