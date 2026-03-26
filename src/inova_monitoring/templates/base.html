@@ -37,9 +37,17 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
                 <span>Analytics</span>
             </a>
-            <a href="/?section=metrics" class="nav-item {% if active_page == 'dashboard' and section == 'metrics' %}active{% endif %}" id="nav-metrics">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12h-4l-3 9L9 3l-3 9H2"/></svg>
-                <span>External Metrics</span>
+            <a href="/catalog" class="nav-item {% if active_page == 'catalog' %}active{% endif %}" id="nav-catalog">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                <span>Service Catalog</span>
+            </a>
+            <a href="/users" class="nav-item {% if active_page == 'users' %}active{% endif %}" id="nav-users">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                <span>Activity & Profiling</span>
+            </a>
+            <a href="/logs" class="nav-item {% if active_page == 'logs' %}active{% endif %}" id="nav-logs">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                <span>System Logs</span>
             </a>
             <a href="/reports" class="nav-item {% if active_page == 'reports' %}active{% endif %}" id="nav-reports">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
