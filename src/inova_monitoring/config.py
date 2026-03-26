@@ -18,10 +18,27 @@ class Settings(BaseSettings):
     prometheus_url: str = Field(default="http://localhost:9090", alias="PROMETHEUS_URL")
 
     # SSO Configuration
-    sso_client_id: str | None = Field(default=None, alias="SSO_CLIENT_ID")
-    sso_client_secret: str | None = Field(default=None, alias="SSO_CLIENT_SECRET")
-    sso_auth_url: str | None = Field(default=None, alias="SSO_AUTH_URL")
-    sso_token_url: str | None = Field(default=None, alias="SSO_TOKEN_URL")
+    auth_methods_allowed: str = Field(
+        default="google,github,entra,basic", alias="AUTH_METHODS_ALLOWED"
+    )
+
+    # Google OAuth
+    google_client_id: str | None = Field(default=None, alias="GOOGLE_CLIENT_ID")
+    google_client_secret: str | None = Field(default=None, alias="GOOGLE_CLIENT_SECRET")
+
+    # GitHub OAuth
+    github_client_id: str | None = Field(default=None, alias="GITHUB_CLIENT_ID")
+    github_client_secret: str | None = Field(default=None, alias="GITHUB_CLIENT_SECRET")
+
+    # Microsoft Entra ID
+    entra_id_client_id: str | None = Field(default=None, alias="ENTRA_ID_CLIENT_ID")
+    entra_id_client_secret: str | None = Field(
+        default=None, alias="ENTRA_ID_CLIENT_SECRET"
+    )
+    entra_id_tenant_id: str | None = Field(default=None, alias="ENTRA_ID_TENANT_ID")
+
+    # Basic Auth Toggle
+    enable_basic_auth: bool = Field(default=True, alias="ENABLE_BASIC_AUTH")
 
     # Application Settings
     debug: bool = Field(default=True, alias="DEBUG")

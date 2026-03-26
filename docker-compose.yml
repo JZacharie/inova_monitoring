@@ -11,7 +11,8 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - ./db/mock_data.sql:/docker-entrypoint-initdb.d/mock_data.sql:ro
+      - ./db/users.sql:/docker-entrypoint-initdb.d/01_users.sql:ro
+      - ./db/mock_data.sql:/docker-entrypoint-initdb.d/02_mock_data.sql:ro
     healthcheck:
       test: ["CMD", "pg_isready", "-U", "inova_user", "-d", "inova-sbx"]
       interval: 5s

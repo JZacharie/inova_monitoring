@@ -15,15 +15,14 @@ from typing import Any
 import json
 from pathlib import Path
 
-import os
-
 from authlib.integrations.starlette_client import OAuth, OAuthError
-from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, Form, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
 
+from .config import settings
 from .database import execute_query
 from .messages import (
     AnalyticsRequest,
@@ -39,19 +38,48 @@ from .messages import (
 app = FastAPI(title="Inova Monitoring", version="0.1.0")
 
 # Session Middleware is required for Authlib OAuth
-app.add_middleware(
-    SessionMiddleware, secret_key=os.getenv("SECRET_KEY", "inova_super_secret_dev_key")
-)
+app.add_middleware(SessionMiddleware, secret_key=settings.api_secret_key)
 
 # OAuth Configuration
 oauth = OAuth()
-oauth.register(
-    name="google",
-    server_metadata_url="https://accounts.google.com/.well-known/openid-configuration",
-    client_id=os.getenv("GOOGLE_CLIENT_ID", "dummy_client_id_for_dev"),
-    client_secret=os.getenv("GOOGLE_CLIENT_SECRET", "dummy_client_secret_for_dev"),
-    client_kwargs={"scope": "openid email profile"},
-)
+
+# Google Registration
+if settings.google_client_id and settings.google_client_secret:
+    oauth.register(
+        name="google",
+        server_metadata_url="https://accounts.google.com/.well-known/openid-configuration",
+        client_id=settings.google_client_id,
+        client_secret=settings.google_client_secret,
+        client_kwargs={"scope": "openid email profile"},
+    )
+
+# GitHub Registration
+if settings.github_client_id and settings.github_client_secret:
+    oauth.register(
+        name="github",
+        client_id=settings.github_client_id,
+        client_secret=settings.github_client_secret,
+        access_token_url="https://github.com/login/oauth/access_token",
+        access_token_params=None,
+        authorize_url="https://github.com/login/oauth/authorize",
+        authorize_params=None,
+        api_base_url="https://api.github.com/",
+        client_kwargs={"scope": "user:email"},
+    )
+
+# Microsoft Entra ID Registration
+if (
+    settings.entra_id_client_id
+    and settings.entra_id_client_secret
+    and settings.entra_id_tenant_id
+):
+    oauth.register(
+        name="entra",
+        server_metadata_url=f"https://login.microsoftonline.com/{settings.entra_id_tenant_id}/v2.0/.well-known/openid-configuration",
+        client_id=settings.entra_id_client_id,
+        client_secret=settings.entra_id_client_secret,
+        client_kwargs={"scope": "openid email profile"},
+    )
 
 BASE_DIR = Path(__file__).parent
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
@@ -63,27 +91,157 @@ def get_current_user(request: Request) -> Any:
     return request.session.get("user")
 
 
-@app.get("/login")
-async def login(request: Request):
-    """Initiate Google OAuth login."""
+@app.get("/login", response_class=HTMLResponse)
+async def login_page(request: Request, error: str | None = None):
+    """Render the multi-method login page."""
     user = get_current_user(request)
     if user:
         return RedirectResponse("/")
-    redirect_uri = request.url_for("auth")
-    return await oauth.google.authorize_redirect(request, str(redirect_uri))
+
+    # Filter allowed methods based on configuration
+    allowed = settings.auth_methods_allowed.split(",")
+    methods = [m.strip().lower() for m in allowed]
+
+    return templates.TemplateResponse(
+        "login.html", {"request": request, "methods": methods, "error": error}
+    )
 
 
-@app.get("/auth")
-async def auth(request: Request):
-    """Callback for Google OAuth."""
+@app.post("/login")
+async def login_basic(
+    request: Request, username: str = Form(...), password: str = Form(...)
+):
+    """Handle Basic Auth from the login form by checking the database."""
+    if not settings.enable_basic_auth:
+        return await login_page(request, error="Basic Auth is disabled")
+
+    # Check database for user - in a real app, use password hashing!
+    # The 'username' field in the form corresponds to 'email' in the database
+    query = "SELECT * FROM users WHERE email = :email AND hashed_password = :password"
+    params = {"email": username, "password": password}
     try:
-        token = await oauth.google.authorize_access_token(request)
-    except OAuthError as error:
-        return HTMLResponse(f"<h1>OAuth Error</h1><p>{error.error}</p>")
+        results = execute_query(query, params)
+        if results:
+            user = results[0]
+            request.session["user"] = {
+                "name": user["full_name"],
+                "email": user["email"],
+                "picture": user["picture_url"],
+            }
+            # Update last login
+            execute_query(
+                "UPDATE users SET last_login = NOW() WHERE id = :id", {"id": user["id"]}
+            )
+            return RedirectResponse("/", status_code=303)
+    except Exception:
+        # Fallback to hardcoded admin if database is not reachable/ready
+        if username == "admin" and password == "admin":
+            request.session["user"] = {
+                "name": "Administrator",
+                "email": "admin@inova.local",
+                "picture": None,
+            }
+            return RedirectResponse("/", status_code=303)
 
-    user = token.get("userinfo")
-    if user:
-        request.session["user"] = dict(user)
+    return await login_page(request, error="Invalid credentials")
+
+
+@app.get("/login/{provider}")
+async def login_oauth(request: Request, provider: str):
+    """Initiate OAuth login for a specific provider."""
+    client = getattr(oauth, provider, None)
+    if not client:
+        return await login_page(request, error=f"Provider {provider} not configured")
+
+    redirect_uri = request.url_for("auth_callback", provider=provider)
+    return await client.authorize_redirect(request, str(redirect_uri))
+
+
+@app.get("/auth/{provider}")
+async def auth_callback(request: Request, provider: str):
+    """Handle OAuth callback for a specific provider."""
+    client = getattr(oauth, provider, None)
+    if not client:
+        return await login_page(request, error="Provider not found")
+
+    try:
+        token = await client.authorize_access_token(request)
+    except OAuthError as error:
+        return await login_page(request, error=f"Auth Error: {error.error}")
+
+    # Extract user info based on provider
+    user_info = None
+    if provider == "google" or provider == "entra":
+        user_info = token.get("userinfo")
+    elif provider == "github":
+        resp = await client.get("user", token=token)
+        user_info = resp.json()
+
+    if user_info:
+        # Normalize/Map the user info to our database
+        email = user_info.get("email")
+        if not email:
+            # Fallback for GitHub if email is not in the top-level
+            if provider == "github":
+                resp = await client.get("user/emails", token=token)
+                emails = resp.json()
+                primary_email = next((e["email"] for e in emails if e["primary"]), None)
+                email = primary_email or emails[0]["email"]
+
+        name = user_info.get("name") or user_info.get("login")
+        picture = user_info.get("picture") or user_info.get("avatar_url")
+        provider_id = str(user_info.get("sub") or user_info.get("id"))
+
+        # Map/Upsert user in database
+        try:
+            # Attempt to find by email (as per mapping requirements)
+            query_find = "SELECT * FROM users WHERE email = :email"
+            existing = execute_query(query_find, {"email": email})
+            if existing:
+                # Update existing user (Basic or other SSO)
+                update_query = """
+                    UPDATE users
+                    SET full_name = :name, picture_url = :picture,
+                        provider = :provider, provider_id = :provider_id,
+                        last_login = NOW()
+                    WHERE email = :email
+                """
+                execute_query(
+                    update_query,
+                    {
+                        "name": name,
+                        "picture": picture,
+                        "provider": provider,
+                        "provider_id": provider_id,
+                        "email": email,
+                    },
+                )
+            else:
+                # Insert new user
+                insert_query = """
+                    INSERT INTO users (email, full_name, picture_url, provider, provider_id, last_login)
+                    VALUES (:email, :name, :picture, :provider, :provider_id, NOW())
+                """
+                execute_query(
+                    insert_query,
+                    {
+                        "email": email,
+                        "name": name,
+                        "picture": picture,
+                        "provider": provider,
+                        "provider_id": provider_id,
+                    },
+                )
+        except Exception:
+            # Continue even if DB mapping fails (optional: log error)
+            pass
+
+        request.session["user"] = {
+            "name": name,
+            "email": email,
+            "picture": picture,
+        }
+
     return RedirectResponse("/")
 
 
