@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Service Catalog — Inova Monitoring</title>
+    <meta name="description" content="Inova Service Catalog & Instance Dashboard - Fleet observability and lifecycle management.">
+    <link rel="stylesheet" href="/static/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Leaflet for Map -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <style>
+        #map { height: 400px; width: 100%; border-radius: var(--radius); margin-bottom: 24px; border: 1px solid var(--border); box-shadow: var(--shadow-md); z-index: 1; }
+        .instance-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 24px; }
+        .instance-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; transition: all 0.3s ease; display: flex; flex-direction: column; gap: 12px; position: relative; overflow: hidden; }
+        .instance-card:hover { border-color: var(--primary-light); transform: translateY(-4px); box-shadow: var(--shadow-lg); }
+        .instance-card.prod { border-left: 4px solid var(--accent-green); }
+        .instance-card.staging { border-left: 4px solid var(--accent-yellow); }
+        .instance-card.dev { border-left: 4px solid var(--accent-purple); }
+        .instance-header { display: flex; justify-content: space-between; align-items: flex-start; }
+        .instance-name { font-size: 1.1rem; font-weight: 700; color: var(--text-heading); }
+        .instance-env-tag { font-size: 0.65rem; font-weight: 800; padding: 2px 8px; border-radius: 4px; text-transform: uppercase; }
+        .env-prod { background: rgba(0, 184, 148, 0.1); color: var(--accent-green); }
+        .env-staging { background: rgba(253, 203, 110, 0.1); color: var(--accent-yellow); }
+        .env-dev { background: rgba(162, 155, 254, 0.1); color: var(--accent-purple); }
+        .instance-info-row { display: flex; gap: 12px; font-size: 0.8rem; color: var(--text-muted); align-items: center; }
+        .instance-info-label { font-weight: 600; min-width: 80px; }
+        .instance-info-value { color: var(--text-base); }
+        .instance-actions { margin-top: auto; padding-top: 16px; border-top: 1px solid var(--border); display: flex; gap: 12px; }
+        .health-indicator { width: 12px; height: 12px; border-radius: 50%; display: inline-block; position: relative; }
+        .health-green { background: var(--accent-green); box-shadow: 0 0 8px var(--accent-green); }
+        .health-yellow { background: var(--accent-yellow); box-shadow: 0 0 8px var(--accent-yellow); }
+        .health-red { background: var(--accent-red); box-shadow: 0 0 8px var(--accent-red); }
+        .argo-link { display: flex; align-items: center; gap: 6px; color: var(--primary-light); text-decoration: none; font-size: 0.75rem; font-weight: 600; }
+        .argo-link:hover { text-decoration: underline; }
+        .search-filters { display: flex; gap: 16px; margin-bottom: 24px; background: var(--bg-card); padding: 16px; border-radius: var(--radius); border: 1px solid var(--border); }
+        .filter-group { display: flex; flex-direction: column; gap: 6px; flex: 1; }
+        .filter-label { font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; }
+        .filter-input { background: var(--bg-base); border: 1px solid var(--border); color: var(--text-base); padding: 8px 12px; border-radius: 6px; font-size: 0.85rem; }
+    </style>
+</head>
+<body>
+
+<div class="app-layout">
+
+    <!-- ═══ SIDEBAR ═══ -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-brand">
+            <div class="brand-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                    <path d="M2 17l10 5 10-5"/>
+                    <path d="M2 12l10 5 10-5"/>
+                </svg>
+            </div>
+            <div class="brand-text">
+                <div class="brand-name">Industrial Intel</div>
+                <div class="brand-sub">Sanofi Ecosystem</div>
+            </div>
+        </div>
+
+        <nav class="sidebar-nav">
+            <a class="nav-item" id="nav-dashboard" href="/">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
+                <span>Dashboard</span>
+            </a>
+            <a class="nav-item active" id="nav-catalog" href="/catalog">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                <span>Service Catalog</span>
+            </a>
+            <a class="nav-item" id="nav-analytics" href="/reports">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                <span>Analytics</span>
+            </a>
+            <a class="nav-item" id="nav-logs" href="/users">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                <span>Activity Logs</span>
+            </a>
+            <a class="nav-item" id="nav-reports" href="/reports">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
+                <span>Reports</span>
+            </a>
+
+            <div class="nav-spacer"></div>
+        </nav>
+
+        <div class="sidebar-footer">
+            <a class="nav-item" href="#">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                <span>Support</span>
+            </a>
+            <a class="nav-item" href="/logout">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                <span>Logout</span>
+            </a>
+        </div>
+    </aside>
+
+    <!-- ═══ MAIN AREA ═══ -->
+    <div class="main-area">
+
+        <!-- ── Top Header ── -->
+        <header class="top-header">
+            <div class="header-left">
+                <div class="header-title">Service Catalog & Fleet Overview</div>
+                <div class="header-breadcrumb">
+                    HOME <span class="sep">›</span> <span>SERVICE CATALOG</span>
+                </div>
+            </div>
+
+            <div class="header-right">
+                <div class="user-profile">
+                    <div class="user-info">
+                        <div class="user-name">{{ user.name or user.get('name') or 'User' }}</div>
+                        <div class="user-role">{{ user.email or user.get('email') or 'Logged In' }}</div>
+                    </div>
+                    <div class="user-avatar" style="overflow:hidden; display:flex; align-items:center; justify-content:center;">
+                        {% if user.picture or user.get('avatar_url') %}
+                        <img src="{{ user.picture or user.get('avatar_url') }}" style="width:100%; height:100%; object-fit:cover;">
+                        {% else %}
+                        {{ (user.name or user.get('name') or 'U')[0].upper() }}
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- ── Content Viewport ── -->
+        <div class="dashboard-content">
+
+            <!-- Interactive Map -->
+            <div id="map"></div>
+
+            <!-- Filters -->
+            <div class="search-filters">
+                <div class="filter-group">
+                    <label class="filter-label">Search</label>
+                    <input type="text" id="search-input" class="filter-input" placeholder="Search by name, version, PO...">
+                </div>
+                <div class="filter-group">
+                    <label class="filter-label">Environment</label>
+                    <select id="env-filter" class="filter-input">
+                        <option value="all">All Environments</option>
+                        <option value="Prod">Production</option>
+                        <option value="Staging">Staging</option>
+                        <option value="Dev">Development</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label class="filter-label">Region</label>
+                    <select id="region-filter" class="filter-input">
+                        <option value="all">All Regions</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Instance Grid -->
+            <div class="instance-grid" id="instance-grid">
+                <!-- Dynamically populated -->
+                <div style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--text-muted);">
+                    Loading instances...
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ── Interaction Layers ── -->
+<div class="overlay" id="overlay" onclick="closeDrawer()"></div>
+<div class="drawer" id="drawer">
+    <h2 id="drawer-title">Instance Details</h2>
+    <div id="drawer-content" style="margin-top:16px; color: var(--text-muted); font-size: 0.85rem; line-height: 1.7;">
+        <p>Loading drill-down data…</p>
+    </div>
+    <button class="drawer-close-btn" onclick="closeDrawer()">Close Panel</button>
+</div>
+
+<script>
+    let instances = [];
+    let map = null;
+    let markers = [];
+
+    async function init() {
+        initMap();
+        await fetchInstances();
+        renderGrid();
+        updateMarkers();
+        populateFilters();
+    }
+
+    function initMap() {
+        map = L.map('map').setView([20, 0], 2);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; OpenStreetMap'
+        }).addTo(map);
+    }
+
+    async function fetchInstances() {
+        try {
+            const response = await fetch('/api/catalog/instances');
+            instances = await response.json();
+            if (instances.error) {
+                console.error(instances.error);
+                instances = [];
+            }
+        } catch (err) {
+            console.error("Failed to fetch instances", err);
+        }
+    }
+
+    function renderGrid() {
+        const grid = document.getElementById('instance-grid');
+        const searchTerm = document.getElementById('search-input').value.toLowerCase();
+        const envFilter = document.getElementById('env-filter').value;
+        const regionFilter = document.getElementById('region-filter').value;
+
+        const filtered = instances.filter(i => {
+            const matchesSearch = i.name.toLowerCase().includes(searchTerm) || 
+                                (i.owner_po && i.owner_po.toLowerCase().includes(searchTerm)) ||
+                                (i.version && i.version.toLowerCase().includes(searchTerm));
+            const matchesEnv = envFilter === 'all' || i.environment === envFilter;
+            const matchesRegion = regionFilter === 'all' || i.region === regionFilter;
+            return matchesSearch && matchesEnv && matchesRegion;
+        });
+
+        if (filtered.length === 0) {
+            grid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 40px; color: var(--text-muted);">No instances found matching your criteria.</div>';
+            return;
+        }
+
+        grid.innerHTML = filtered.map(i => `
+            <div class="instance-card ${i.environment.toLowerCase()}" onclick="openInstanceDetail(${i.id})">
+                <div class="instance-header">
+                    <div>
+                        <div class="instance-name">${i.name}</div>
+                        <div style="font-size: 0.7rem; color: var(--text-muted);">${i.region} • ${i.datacenter}</div>
+                    </div>
+                    <span class="instance-env-tag env-${i.environment.toLowerCase()}">${i.environment}</span>
+                </div>
+                
+                <div style="display:flex; align-items:center; gap:8px; font-size: 0.75rem; color: var(--text-muted);">
+                    <span class="health-indicator health-green"></span>
+                    Operational
+                    <span style="margin-left:auto;">${i.version || 'v?.?.?'}</span>
+                </div>
+
+                <div class="instance-info-row" style="margin-top: 8px;">
+                    <span class="instance-info-label">PO:</span>
+                    <span class="instance-info-value">${i.owner_po || 'N/A'}</span>
+                </div>
+                
+                <div class="instance-info-row">
+                    <span class="instance-info-label">Tech Lead:</span>
+                    <span class="instance-info-value">${i.owner_tech || 'N/A'}</span>
+                </div>
+
+                <div class="instance-actions">
+                    <a href="${i.url}" target="_blank" class="argo-link" onclick="event.stopPropagation()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                        Visit Site
+                    </a>
+                    ${i.argocd_url ? `
+                        <a href="${i.argocd_url}" target="_blank" class="argo-link" style="color: var(--accent-yellow);" onclick="event.stopPropagation()">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                            ArgoCD
+                        </a>
+                    ` : ''}
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function updateMarkers() {
+        markers.forEach(m => map.removeLayer(m));
+        markers = [];
+
+        instances.forEach(i => {
+            if (i.latitude && i.longitude) {
+                const color = i.environment === 'Prod' ? '#00b894' : (i.environment === 'Staging' ? '#fdcb6e' : '#a29bfe');
+                const marker = L.circleMarker([i.latitude, i.longitude], {
+                    radius: 8,
+                    fillColor: color,
+                    color: "#fff",
+                    weight: 1,
+                    opacity: 1,
+                    fillOpacity: 0.8
+                }).addTo(map);
+                
+                marker.bindPopup(`<strong>${i.name}</strong><br>${i.environment}<br>${i.region}`);
+                markers.push(marker);
+            }
+        });
+
+        if (markers.length > 0) {
+            const group = new L.featureGroup(markers);
+            map.fitBounds(group.getBounds().pad(0.5));
+        }
+    }
+
+    function populateFilters() {
+        const regions = [...new Set(instances.map(i => i.region))].sort();
+        const select = document.getElementById('region-filter');
+        regions.forEach(r => {
+            if (r) {
+                const opt = document.createElement('option');
+                opt.value = r;
+                opt.textContent = r;
+                select.appendChild(opt);
+            }
+        });
+    }
+
+    function openInstanceDetail(id) {
+        const i = instances.find(inst => inst.id === id);
+        if (!i) return;
+
+        const drawer = document.getElementById('drawer');
+        const overlay = document.getElementById('overlay');
+        const content = document.getElementById('drawer-content');
+        document.getElementById('drawer-title').textContent = i.name;
+
+        content.innerHTML = `
+            <div style="display: flex; flex-direction: column; gap: 20px;">
+                <section>
+                    <h4 style="color: var(--text-heading); margin-bottom: 8px;">General Information</h4>
+                    <div class="instance-info-row"><span class="instance-info-label">URL:</span> <a href="${i.url}" target="_blank" style="color: var(--primary-light);">${i.url}</a></div>
+                    <div class="instance-info-row"><span class="instance-info-label">Environment:</span> <span class="instance-env-tag env-${i.environment.toLowerCase()}">${i.environment}</span></div>
+                    <div class="instance-info-row"><span class="instance-info-label">Version:</span> <span>${i.version}</span></div>
+                    <div class="instance-info-row"><span class="instance-info-label">Region:</span> <span>${i.region} (${i.datacenter})</span></div>
+                </section>
+
+                <section>
+                    <h4 style="color: var(--text-heading); margin-bottom: 8px;">Contact Points</h4>
+                    <div class="instance-info-row"><span class="instance-info-label">Product Owner:</span> <span>${i.owner_po}</span></div>
+                    <div class="instance-info-row"><span class="instance-info-label">Tech Lead:</span> <span>${i.owner_tech}</span></div>
+                    <div class="instance-info-row"><span class="instance-info-label">Business:</span> <span>${i.owner_business}</span></div>
+                </section>
+
+                <section>
+                    <h4 style="color: var(--text-heading); margin-bottom: 8px;">Maintenance Windows</h4>
+                    <div style="background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px; border: 1px solid var(--border);">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14" style="vertical-align: middle; margin-right: 8px; color: var(--accent-yellow);"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        <span>${i.maintenance_windows || 'No scheduled maintenance'}</span>
+                    </div>
+                </section>
+
+                <section>
+                    <h4 style="color: var(--text-heading); margin-bottom: 8px;">Operations (Ops Core)</h4>
+                    <div style="display: flex; flex-direction: column; gap: 12px;">
+                        <div class="instance-info-row">
+                            <span class="instance-info-label">ArgoCD App:</span> 
+                            <code>${i.argocd_app_name || 'N/A'}</code>
+                        </div>
+                        <div style="display: flex; gap: 12px;">
+                            <a href="${i.argocd_url}" target="_blank" class="action-btn" style="text-decoration: none; text-align: center; flex: 1; background: var(--bg-base); border: 1px solid var(--border);">Open ArgoCD</a>
+                            <button class="action-btn" style="flex: 1;" onclick="alert('Manual Sync triggered (mock)')">Sync Now</button>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        `;
+
+        drawer.classList.add('open');
+        overlay.classList.add('visible');
+    }
+
+    function closeDrawer() {
+        document.getElementById('drawer').classList.remove('open');
+        document.getElementById('overlay').classList.remove('visible');
+    }
+
+    document.getElementById('search-input').oninput = renderGrid;
+    document.getElementById('env-filter').onchange = renderGrid;
+    document.getElementById('region-filter').onchange = renderGrid;
+
+    init();
+</script>
+</body>
+</html>

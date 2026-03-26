@@ -21,6 +21,11 @@ class Settings(BaseSettings):
     )  # JSON string of endpoints
     metrics_refresh_interval: int = Field(default=30, alias="METRICS_REFRESH_INTERVAL")
 
+    # ArgoCD Configuration
+    argocd_url: str = Field(default="https://argocd.inova.local", alias="ARGOCD_URL")
+    argocd_token: str | None = Field(default=None, alias="ARGOCD_TOKEN") # Required for API calls
+    argocd_verify_ssl: bool = Field(default=False, alias="ARGOCD_VERIFY_SSL")
+
     # SSO Configuration
     auth_methods_allowed: str = Field(
         default="google,github,entra,basic", alias="AUTH_METHODS_ALLOWED"

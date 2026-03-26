@@ -8,10 +8,7 @@ WebSocket message flow
     Server → { type: "welcome",       payload: { message, version } }
 """
 
-from __future__ import annotations
-
-from typing import Any
-
+import httpx
 import json
 from pathlib import Path
 
@@ -292,6 +289,81 @@ async def read_reports(request: Request):
         name="reports.html",
         context={"title": "Reports", "user": user},
     )
+
+
+@app.get("/catalog", response_class=HTMLResponse)
+async def read_catalog(request: Request):
+    """Render the Service Catalog & Instance Dashboard."""
+    user = get_current_user(request)
+    if not user:
+        return RedirectResponse("/login")
+    return templates.TemplateResponse(
+        request=request,
+        name="catalog.html",
+        context={"title": "Service Catalog", "user": user},
+    )
+
+
+@app.get("/api/catalog/instances")
+async def get_instances(request: Request):
+    """API endpoint to fetch all monitored instances."""
+    user = get_current_user(request)
+    if not user:
+        return {"detail": "Unauthorized"}
+    
+    try:
+        # Fetch instances from database
+        query = "SELECT * FROM instances ORDER BY name ASC"
+        rows = execute_query(query)
+        return rows
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.get("/api/catalog/instances/{instance_id}/status")
+async def get_instance_status(instance_id: int):
+    """Fetch real-time status for an instance from ArgoCD."""
+    try:
+        query = "SELECT argocd_app_name FROM instances WHERE id = :id"
+        result = execute_query(query, {"id": instance_id})
+        if not result:
+            return {"error": "Instance not found"}
+        
+        app_name = result[0]["argocd_app_name"]
+        if not app_name:
+            return {"status": "unknown", "message": "No ArgoCD app configured"}
+
+        # If token is not set, return a mock status for demonstration
+        if not settings.argocd_token:
+            import random
+            statuses = ["Synced", "OutOfSync"]
+            healths = ["Healthy", "Degraded", "Progressing"]
+            return {
+                "sync_status": random.choice(statuses),
+                "health_status": random.choice(healths),
+                "repo_url": "https://github.com/JZacharie/inova_monitoring",
+                "rev": "v3.4.5"
+            }
+
+        # Real API call to ArgoCD
+        async with httpx.AsyncClient(verify=settings.argocd_verify_ssl) as client:
+            headers = {"Authorization": f"Bearer {settings.argocd_token}"}
+            url = f"{settings.argocd_url}/api/v1/applications/{app_name}"
+            resp = await client.get(url, headers=headers)
+            
+            if resp.status_code == 200:
+                data = resp.json()
+                return {
+                    "sync_status": data.get("status", {}).get("sync", {}).get("status"),
+                    "health_status": data.get("status", {}).get("health", {}).get("status"),
+                    "repo_url": data.get("spec", {}).get("source", {}).get("repoURL"),
+                    "rev": data.get("status", {}).get("sync", {}).get("revision")
+                }
+            else:
+                return {"error": f"ArgoCD API Error: {resp.status_code}", "detail": resp.text}
+
+    except Exception as e:
+        return {"error": str(e)}
 
 
 @app.get("/logs", response_class=HTMLResponse)
