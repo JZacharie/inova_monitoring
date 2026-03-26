@@ -1,922 +1,118 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reports — INOVA PASX MES</title>
-    <meta name="description" content="Manage, schedule, and analyze manufacturing intelligence templates.">
-    <link rel="stylesheet" href="/static/style.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <style>
-        /* ── Page-specific overrides (Reports) ── */
-
-        .page-title-block {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 24px;
-        }
-
-        .page-title-block h1 {
-            font-size: 1.5rem;
-            font-weight: 800;
-            color: var(--text-heading);
-            margin-bottom: 4px;
-        }
-
-        .page-subtitle {
-            font-size: 0.78rem;
-            color: var(--text-muted);
-        }
-
-        .page-actions {
-            display: flex;
-            gap: 10px;
-        }
-
-        .btn-outline {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            padding: 8px 18px;
-            border: 1px solid var(--border);
-            border-radius: var(--radius-sm);
-            background: rgba(30, 41, 59, 0.5);
-            color: var(--text-main);
-            font-size: 0.78rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all var(--transition);
-        }
-
-        .btn-outline:hover {
-            border-color: var(--primary);
-            color: var(--text-heading);
-            background: rgba(63, 63, 70, 0.5);
-        }
-
-        .btn-primary {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            padding: 8px 18px;
-            border: 1px solid var(--primary-light);
-            border-radius: var(--radius-sm);
-            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-            color: white;
-            font-size: 0.78rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all var(--transition);
-        }
-
-        .btn-primary:hover {
-            opacity: 0.9;
-            box-shadow: var(--shadow-glow);
-        }
-
-        /* Layout Grid */
-        .reports-grid {
-            display: grid;
-            grid-template-columns: 280px 1fr;
-            gap: 24px;
-        }
-
-        /* Left Column (Menu) */
-        .left-menu {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-
-        .menu-section-title {
-            font-size: 0.65rem;
-            font-weight: 700;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-            margin-bottom: 12px;
-            padding-left: 8px;
-        }
-
-        .menu-list {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-        }
-
-        .menu-item {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 10px 12px;
-            border-radius: var(--radius-sm);
-            color: var(--text-main);
-            font-size: 0.78rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background var(--transition);
-        }
-
-        .menu-item:hover {
-            background: rgba(255, 255, 255, 0.05);
-        }
-
-        .menu-item .icon-text {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .menu-item svg {
-            width: 14px;
-            height: 14px;
-            color: var(--text-muted);
-        }
-
-        .menu-item.active {
-            background: rgba(139, 92, 246, 0.1);
-        }
-
-        .submenu {
-            padding-left: 36px;
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-            margin-top: 4px;
-        }
-
-        .submenu-item {
-            padding: 8px 12px;
-            border-radius: var(--radius-sm);
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            cursor: pointer;
-            transition: all var(--transition);
-            border-left: 2px solid transparent;
-        }
-
-        .submenu-item.active {
-            background: rgba(139, 92, 246, 0.15);
-            color: var(--primary-light);
-            border-left: 2px solid var(--primary-light);
-        }
-
-        .submenu-item:hover:not(.active) {
-            color: var(--text-main);
-            background: rgba(255, 255, 255, 0.03);
-        }
-
-        /* Recent Activity Card */
-        .recent-activity {
-            background: var(--bg-card);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            padding: 16px;
-        }
-
-        .activity-item {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 16px;
-        }
-
-        .activity-item:last-child {
-            margin-bottom: 0;
-        }
-
-        .activity-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            margin-top: 4px;
-            flex-shrink: 0;
-        }
-
-        .activity-dot.green { background: var(--accent-green); }
-        .activity-dot.red { background: var(--accent-red); }
-
-        .activity-content {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .activity-title {
-            font-size: 0.75rem;
-            font-weight: 700;
-            color: var(--text-main);
-        }
-
-        .activity-desc {
-            font-size: 0.65rem;
-            color: var(--text-muted);
-            margin-top: 2px;
-        }
-
-        /* Right Column (Report View) */
-        .report-view {
-            background: rgba(23, 23, 38, 0.7);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            padding: 24px;
-            display: flex;
-            flex-direction: column;
-            gap: 24px;
-        }
-
-        .report-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        .report-title-section {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-        }
-
-        .report-icon {
-            width: 48px;
-            height: 48px;
-            border-radius: var(--radius-sm);
-            background: var(--primary);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .report-icon svg {
-            width: 20px;
-            height: 20px;
-            color: white;
-        }
-
-        .report-title {
-            font-size: 1.2rem;
-            font-weight: 800;
-            color: var(--text-heading);
-            margin-bottom: 2px;
-        }
-
-        .report-date {
-            font-size: 0.7rem;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 0.04em;
-            font-weight: 600;
-        }
-
-        .report-actions {
-            display: flex;
-            gap: 8px;
-        }
-
-        .icon-btn {
-            width: 32px;
-            height: 32px;
-            border-radius: var(--radius-sm);
-            border: 1px solid var(--border);
-            background: rgba(255,255,255,0.05);
-            color: var(--text-muted);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: all var(--transition);
-        }
-
-        .icon-btn:hover {
-            color: var(--text-heading);
-            background: rgba(255,255,255,0.1);
-        }
-
-        /* KPI Row */
-        .report-kpi-row {
-            display: flex;
-            gap: 20px;
-            border-bottom: 1px solid var(--border);
-            padding-bottom: 24px;
-        }
-
-        .report-kpi {
-            flex: 1;
-            padding-left: 16px;
-            border-left: 2px solid var(--primary-light);
-        }
-
-        .report-kpi:first-child {
-            border-left: none;
-            padding-left: 0;
-            border-right: 1px solid var(--border);
-            padding-right: 16px;
-        }
-
-        .report-kpi:nth-child(2) {
-            border-left: none;
-            border-right: 1px solid var(--border);
-            padding-right: 16px;
-        }
-
-        .report-kpi .label {
-            font-size: 0.65rem;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            font-weight: 700;
-            margin-bottom: 4px;
-        }
-
-        .report-kpi .value-row {
-            display: flex;
-            align-items: baseline;
-            gap: 8px;
-        }
-
-        .report-kpi .value {
-            font-size: 1.8rem;
-            font-weight: 800;
-            color: var(--text-heading);
-        }
-
-        .report-kpi .trend {
-            font-size: 0.72rem;
-            font-weight: 700;
-            color: var(--accent-green);
-        }
-
-        .report-kpi .sub-value {
-            font-size: 0.72rem;
-            color: var(--text-muted);
-        }
-
-        /* Main Content Grid */
-        .report-body-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 24px;
-        }
-
-        .section-heading {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 0.75rem;
-            font-weight: 700;
-            color: var(--text-heading);
-            margin-bottom: 12px;
-        }
-
-        .section-heading::before {
-            content: '';
-            width: 4px;
-            height: 12px;
-            background: var(--primary-light);
-            border-radius: 2px;
-        }
-        
-        .section-heading.red-marker::before {
-            background: var(--accent-red);
-        }
-
-        /* Chart */
-        .chart-container {
-            background: rgba(10, 11, 26, 0.4);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-sm);
-            padding: 16px;
-            height: 180px;
-            position: relative;
-        }
-
-        .chart-labels {
-            display: flex;
-            justify-content: space-between;
-            font-size: 0.6rem;
-            color: var(--text-muted);
-            margin-bottom: 8px;
-        }
-        
-        .chart-legend-mini {
-            position: absolute;
-            top: 16px;
-            right: 16px;
-            font-size: 0.6rem;
-            color: var(--text-muted);
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
-        
-        .chart-legend-mini::before {
-            content: '';
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            background: var(--primary-light);
-        }
-
-        .chart-x-labels {
-            display: flex;
-            justify-content: space-between;
-            font-size: 0.6rem;
-            color: var(--text-muted);
-            margin-top: 8px;
-            padding: 0 10px;
-        }
-
-        /* Top Issues */
-        .issues-list {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .issue-item {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            background: rgba(10, 11, 26, 0.4);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-sm);
-            padding: 10px 14px;
-        }
-
-        .issue-icon {
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-        }
-
-        .issue-critical { background: rgba(239, 68, 68, 0.15); color: var(--accent-red); }
-        .issue-warning { background: rgba(245, 158, 11, 0.15); color: var(--accent-yellow); }
-        .issue-info { background: rgba(107, 111, 138, 0.2); color: var(--text-muted); }
-
-        .issue-icon svg { width: 14px; height: 14px; }
-
-        .issue-text {
-            flex: 1;
-            font-size: 0.72rem;
-            font-weight: 600;
-            color: var(--text-main);
-            line-height: 1.3;
-        }
-
-        .issue-events {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-end;
-        }
-
-        .events-num {
-            font-size: 0.8rem;
-            font-weight: 700;
-            color: var(--text-heading);
-            line-height: 1.1;
-        }
-
-        .events-label {
-            font-size: 0.55rem;
-            color: var(--text-muted);
-            text-transform: uppercase;
-        }
-
-        /* Recommendations */
-        .recommendations {
-            background: rgba(255, 255, 255, 0.02);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-sm);
-            padding: 16px 20px;
-        }
-
-        .rec-title {
-            font-size: 0.7rem;
-            font-weight: 700;
-            color: var(--text-heading);
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            margin-bottom: 12px;
-        }
-
-        .rec-list {
-            list-style: none;
-            counter-reset: rec-counter;
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .rec-item {
-            position: relative;
-            padding-left: 24px;
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            line-height: 1.5;
-        }
-
-        .rec-item::before {
-            counter-increment: rec-counter;
-            content: "0" counter(rec-counter) ".";
-            position: absolute;
-            left: 0;
-            top: 0;
-            font-weight: 700;
-            color: var(--text-main);
-        }
-
-        /* Report Footer */
-        .report-footer {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding-top: 20px;
-            border-top: 1px solid var(--border);
-        }
-
-        .footer-group {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-        }
-
-        .footer-label {
-            font-size: 0.6rem;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            font-weight: 700;
-            letter-spacing: 0.05em;
-        }
-
-        .footer-value {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 0.75rem;
-            font-weight: 600;
-            color: var(--text-main);
-        }
-
-        .avatar-group {
-            display: flex;
-        }
-
-        .avatar-sm {
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            background: var(--bg-card);
-            border: 1px solid rgba(255,255,255,0.1);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.5rem;
-            font-weight: 700;
-            color: var(--text-main);
-            margin-right: -6px;
-        }
-
-        .tag {
-            padding: 2px 6px;
-            background: rgba(255,255,255,0.08);
-            border-radius: 4px;
-            font-size: 0.65rem;
-            font-weight: 600;
-            color: var(--text-main);
-        }
-
-        @media (max-width: 900px) {
-            .reports-grid {
-                grid-template-columns: 1fr;
-            }
-            .report-body-grid {
-                grid-template-columns: 1fr;
-            }
-            .report-kpi-row {
-                flex-direction: column;
-                gap: 16px;
-            }
-            .report-kpi, .report-kpi:first-child, .report-kpi:nth-child(2) {
-                border: none;
-                padding: 0;
-                border-left: 2px solid var(--primary-light);
-                padding-left: 12px;
-            }
-            .report-footer {
-                flex-wrap: wrap;
-                gap: 16px;
-            }
-        }
-    </style>
-</head>
-<body>
-
-<div class="app-layout">
-
-    <!-- ═══ SIDEBAR ═══ -->
-    <aside class="sidebar" id="sidebar">
-        <!-- Brand -->
-        <div class="sidebar-brand">
-            <div class="brand-icon">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-                    <path d="M2 17l10 5 10-5"/>
-                    <path d="M2 12l10 5 10-5"/>
-                </svg>
-            </div>
-            <div class="brand-text">
-                <div class="brand-name">Industrial Intel</div>
-                <div class="brand-sub">Sanofi Ecosystem</div>
-            </div>
-        </div>
-
-        <!-- Nav -->
-        <nav class="sidebar-nav">
-            <a class="nav-item" href="/">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
-                <span>Dashboard</span>
-            </a>
-            <a class="nav-item" href="#">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-                <span>Analytics</span>
-            </a>
-            <a class="nav-item" href="/catalog">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
-                <span>Service Catalog</span>
-            </a>
-            <a class="nav-item" href="#">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
-                <span>Assets</span>
-            </a>
-            <a class="nav-item" href="/logs">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
-                <span>Logs</span>
-            </a>
-            <a class="nav-item active" href="/reports">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
-                <span>Reports</span>
-            </a>
-
-            <div class="nav-btn-new" onclick="alert('New monitor coming soon!')">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                <span>New Monitor</span>
-            </div>
-            
-            <div class="nav-spacer"></div>
-        </nav>
-
-        <div class="sidebar-footer">
-            <a class="nav-item" href="#">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-                <span>Support</span>
-            </a>
-            <a class="nav-item" href="/logout">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-                <span>Logout</span>
-            </a>
-        </div>
-    </aside>
-
-    <!-- ═══ MAIN AREA ═══ -->
-    <div class="main-area">
-
-        <!-- Header -->
-        <header class="top-header">
-            <div class="header-left">
-                <div class="header-title" style="font-size: 1.1rem;">Industrial MES Monitoring</div>
-            </div>
-
-            <!-- Mimic top nav from the reference for continuity -->
-            <div class="header-center" style="gap: 20px;">
-                <a href="/" style="color:var(--text-muted); text-decoration:none; font-size:0.8rem; font-weight:500;">Dashboard</a>
-                <a href="/reports" style="color:white; text-decoration:none; font-size:0.8rem; font-weight:600; border-bottom:2px solid var(--primary-light); padding-bottom:4px;">Reports</a>
-                <a href="#" style="color:var(--text-muted); text-decoration:none; font-size:0.8rem; font-weight:500;">Assets</a>
-                <a href="/logs" style="color:var(--text-muted); text-decoration:none; font-size:0.8rem; font-weight:500;">Logs</a>
-            </div>
-
-            <div class="header-right">
-                <div style="position:relative;">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2" width="14" height="14" style="position:absolute; left:10px; top:8px;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                    <input type="text" placeholder="Search templates..." style="background:var(--bg-card); border:1px solid var(--border); border-radius:var(--radius-sm); padding:6px 14px 6px 32px; color:var(--text-main); font-size:0.75rem; width:220px; outline:none;">
-                </div>
-                <button class="header-icon-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></button>
-                <button class="header-icon-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></button>
-                <button class="header-icon-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
-                <div class="user-avatar" style="overflow:hidden; display:flex; align-items:center; justify-content:center; width:28px; height:28px; font-size:0.6rem; cursor:pointer;" onclick="window.location.href='/logout'">
-                    {% if user.picture or user.get('avatar_url') %}
-                    <img src="{{ user.picture or user.get('avatar_url') }}" style="width:100%; height:100%; object-fit:cover;">
-                    {% else %}
-                    {{ (user.name or user.get('name') or 'U')[0].upper() }}
-                    {% endif %}
-                </div>
-            </div>
-        </header>
-
-        <!-- Dashboard Content -->
-        <div class="dashboard-content" style="padding: 32px 40px;">
-
-            <div class="page-title-block">
-                <div>
-                    <h1>Reports - Automated Reporting</h1>
-                    <div class="page-subtitle">Manage, schedule, and analyze manufacturing intelligence templates.</div>
-                </div>
-                <div class="page-actions">
-                    <button class="btn-outline">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                        Schedule Report
-                    </button>
-                    <button class="btn-outline">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                        Export
-                    </button>
-                    <button class="btn-primary">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                        Create New Report
-                    </button>
-                </div>
-            </div>
-
-            <div class="reports-grid">
-                <!-- Left Menu -->
-                <div class="left-menu">
-                    <div class="menu-section-title">Report Library</div>
-                    
-                    <div class="menu-list">
-                        <div class="menu-item active">
-                            <div class="icon-text">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                                System Health
-                            </div>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
-                        </div>
-                        <div class="submenu">
-                            <div class="submenu-item active">Weekly Performance Report</div>
-                            <div class="submenu-item">Server Latency Audit</div>
-                        </div>
-
-                        <div class="menu-item">
-                            <div class="icon-text">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                                Incident Reports
-                            </div>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
-                        </div>
-                        
-                        <div class="menu-item">
-                            <div class="icon-text">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
-                                Manufacturing Reports
-                            </div>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
-                        </div>
-
-                        <div class="menu-item">
-                            <div class="icon-text">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-                                Compliance Reports
-                            </div>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
-                        </div>
-                    </div>
-
-                    <div class="recent-activity">
-                        <div class="menu-section-title" style="padding-left:0; margin-bottom:16px;">Recent Activity</div>
-                        
-                        <div class="activity-item">
-                            <div class="activity-dot green"></div>
-                            <div class="activity-content">
-                                <div class="activity-title">Compliance Audit Sent</div>
-                                <div class="activity-desc">to: quality-assurance@sanofi.com</div>
-                            </div>
-                        </div>
-                        
-                        <div class="activity-item">
-                            <div class="activity-dot red"></div>
-                            <div class="activity-content">
-                                <div class="activity-title">Yield Deficit Alert Failed</div>
-                                <div class="activity-desc">SMTP timeout on node-24</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Right View -->
-                <div class="report-view">
-                    
-                    <div class="report-header">
-                        <div class="report-title-section">
-                            <div class="report-icon">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-                            </div>
-                            <div>
-                                <div class="report-title">Weekly Performance Report</div>
-                                <div class="report-date">GENERATED FOR: MAR 04 - MAR 11, 2024</div>
-                            </div>
-                        </div>
-                        <div class="report-actions">
-                            <button class="icon-btn" title="Print"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></button>
-                            <button class="icon-btn" title="Share"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg></button>
-                            <button class="icon-btn" title="Edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
-                        </div>
-                    </div>
-
-                    <div class="report-kpi-row">
-                        <div class="report-kpi">
-                            <div class="label">AVG. UPTIME</div>
-                            <div class="value-row">
-                                <span class="value" id="avg-uptime">99.82%</span>
-                                <span class="trend">↗<span id="avg-uptime-trend">+0.4%</span></span>
-                            </div>
-                        </div>
-                        <div class="report-kpi">
-                            <div class="label">SUCCESS RATE</div>
-                            <div class="value-row">
-                                <span class="value" id="success-rate">94.1%</span>
-                                <span class="trend">↗<span id="success-rate-trend">+2.1%</span></span>
-                            </div>
-                        </div>
-                        <div class="report-kpi">
-                            <div class="label">TOTAL BATCHES PROCESSED</div>
-                            <div class="value-row">
-                                <span class="value" id="total-batches">1,248</span>
-                                <span class="sub-value" id="target-batches">Global Site Target: 1,200</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="report-body-grid">
-                        <div class="section-col">
-                            <div class="section-heading">Performance Trends</div>
-                            <div class="chart-container">
-                                <div class="chart-labels">
-                                    <span>100%</span>
-                                </div>
-                                <div class="chart-legend-mini">OEE</div>
-                                
-                                <svg id="perf-trends-svg" style="width:100%; height:110px;"></svg>
-                                
-                                <div class="chart-x-labels">
-                                    <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="section-col">
-                            <div class="section-heading red-marker">Top Issues List</div>
-                            <div class="issues-list" id="top-issues-list">
-                                <!-- Rendered by JS -->
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Strategic Recommendations -->
-                    <div class="recommendations">
-                        <div class="rec-title">STRATEGIC RECOMMENDATIONS</div>
-                        <ol class="rec-list">
-                            <li class="rec-item">Initiate preventive maintenance on Area D sensors within the next 48 hours to avoid critical drift.</li>
-                            <li class="rec-item">Review access logs for Shift B following unauthorized override attempts on Terminal 09.</li>
-                        </ol>
-                    </div>
-
-                    <div class="report-footer">
-                        <div class="footer-group">
-                            <div class="footer-label">FREQUENCY</div>
-                            <div class="footer-value">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                                Weekly, Mondays @ 06:00 UTC
-                            </div>
-                        </div>
-                        <div class="footer-group">
-                            <div class="footer-label">RECIPIENTS</div>
-                            <div class="footer-value">
-                                <div class="avatar-group">
-                                    <div class="avatar-sm">JD</div>
-                                    <div class="avatar-sm">AN</div>
-                                    <div class="avatar-sm" style="background:var(--border);">+4</div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="footer-group">
-                            <div class="footer-label">DELIVERY FORMAT</div>
-                            <div class="footer-value">
-                                <span class="tag">PDF</span>
-                                <span class="tag">CSV</span>
-                            </div>
-                        </div>
-                    </div>
-
-                </div>
-            </div>
-
-        </div>
+{% extends "base.html" %}
+
+{% block title %}Reports — Inova Monitoring{% endblock %}
+
+{% block extra_head %}
+<style>
+    /* ── Page-specific overrides (Reports) ── */
+    .page-title-block { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; }
+    .page-title-block h1 { font-size: 1.5rem; font-weight: 800; color: var(--text-heading); margin-bottom: 4px; }
+    .page-subtitle { font-size: 0.78rem; color: var(--text-muted); }
+    .page-actions { display: flex; gap: 10px; }
+    .btn-outline { display: flex; align-items: center; gap: 6px; padding: 8px 18px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: rgba(30, 41, 59, 0.5); color: var(--text-main); font-size: 0.78rem; font-weight: 600; cursor: pointer; transition: all var(--transition); }
+    .btn-outline:hover { border-color: var(--primary); color: var(--text-heading); background: rgba(63, 63, 70, 0.5); }
+    .btn-primary { display: flex; align-items: center; gap: 6px; padding: 8px 18px; border: 1px solid var(--primary-light); border-radius: var(--radius-sm); background: linear-gradient(135deg, var(--primary), var(--primary-dark)); color: white; font-size: 0.78rem; font-weight: 600; cursor: pointer; transition: all var(--transition); }
+    .btn-primary:hover { opacity: 0.9; box-shadow: var(--shadow-glow); }
+    .reports-grid { display: grid; grid-template-columns: 280px 1fr; gap: 24px; }
+    .left-menu { display: flex; flex-direction: column; gap: 20px; }
+    .menu-section-title { font-size: 0.65rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px; padding-left: 8px; }
+    .menu-list { display: flex; flex-direction: column; gap: 4px; }
+    .menu-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-radius: var(--radius-sm); color: var(--text-main); font-size: 0.78rem; font-weight: 600; cursor: pointer; transition: background var(--transition); }
+    .menu-item:hover { background: rgba(255, 255, 255, 0.05); }
+    .menu-item .icon-text { display: flex; align-items: center; gap: 10px; }
+    .menu-item svg { width: 14px; height: 14px; color: var(--text-muted); }
+    .menu-item.active { background: rgba(139, 92, 246, 0.1); }
+    .submenu { padding-left: 36px; display: flex; flex-direction: column; gap: 4px; margin-top: 4px; }
+    .submenu-item { padding: 8px 12px; border-radius: var(--radius-sm); font-size: 0.75rem; color: var(--text-muted); cursor: pointer; transition: all var(--transition); border-left: 2px solid transparent; }
+    .submenu-item.active { background: rgba(139, 92, 246, 0.15); color: var(--primary-light); border-left: 2px solid var(--primary-light); }
+    .submenu-item:hover:not(.active) { color: var(--text-main); background: rgba(255, 255, 255, 0.03); }
+    .recent-activity { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; }
+    .activity-item { display: flex; gap: 10px; margin-bottom: 16px; }
+    .activity-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 4px; flex-shrink: 0; }
+    .activity-dot.green { background: var(--accent-green); }
+    .activity-dot.red { background: var(--accent-red); }
+    .activity-content { display: flex; flex-direction: column; }
+    .activity-title { font-size: 0.75rem; font-weight: 700; color: var(--text-main); }
+    .activity-desc { font-size: 0.65rem; color: var(--text-muted); margin-top: 2px; }
+    .report-view { background: rgba(23, 23, 38, 0.7); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; display: flex; flex-direction: column; gap: 24px; }
+    .report-header { display: flex; align-items: center; justify-content: space-between; }
+    .report-title-section { display: flex; align-items: center; gap: 16px; }
+    .report-icon { width: 48px; height: 48px; border-radius: var(--radius-sm); background: var(--primary); display: flex; align-items: center; justify-content: center; }
+    .report-icon svg { width: 20px; height: 20px; color: white; }
+    .report-title { font-size: 1.2rem; font-weight: 800; color: var(--text-heading); margin-bottom: 2px; }
+    .report-date { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; }
+    .report-actions { display: flex; gap: 8px; }
+    .icon-btn { width: 32px; height: 32px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: rgba(255,255,255,0.05); color: var(--text-muted); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all var(--transition); }
+    .icon-btn:hover { color: var(--text-heading); background: rgba(255,255,255,0.1); }
+    .report-kpi-row { display: flex; gap: 20px; border-bottom: 1px solid var(--border); padding-bottom: 24px; }
+    .report-kpi { flex: 1; padding-left: 16px; border-left: 2px solid var(--primary-light); }
+    .report-kpi:first-child { border-left: none; padding-left: 0; border-right: 1px solid var(--border); padding-right: 16px; }
+</style>
+{% endblock %}
+
+{% block breadcrumb %}REPORTS{% endblock %}
+
+{% block content %}
+<div class="page-title-block">
+    <div>
+        <h1>Reports - Automated Reporting</h1>
+        <div class="page-subtitle">Manage, schedule, and analyze manufacturing intelligence templates.</div>
+    </div>
+    <div class="page-actions">
+        <button class="btn-outline">Schedule Report</button>
+        <button class="btn-outline">Export</button>
+        <button class="btn-primary">Create New Report</button>
     </div>
 </div>
 
-<script src="/static/reports.js"></script>
-</body>
-</html>
+<div class="reports-grid">
+    <div class="left-menu">
+        <div class="menu-section-title">Report Library</div>
+        <div class="menu-list">
+            <div class="menu-item active">
+                <div class="icon-text">System Health</div>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+            </div>
+            <div class="submenu">
+                <div class="submenu-item active">Weekly Performance Report</div>
+                <div class="submenu-item">Server Latency Audit</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="report-view">
+        <div class="report-header">
+            <div class="report-title-section">
+                <div class="report-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
+                </div>
+                <div>
+                    <div class="report-title">Weekly Performance Analysis</div>
+                    <div class="report-date">MAR 17 — MAR 24, 2024</div>
+                </div>
+            </div>
+            <div class="report-actions">
+                <button class="icon-btn">Download</button>
+                <button class="icon-btn">Share</button>
+            </div>
+        </div>
+        
+        <div class="report-kpi-row">
+            <div class="report-kpi">
+                <div class="label">System Uptime</div>
+                <div class="value-row">
+                    <div class="value">99.98%</div>
+                    <div class="trend">↑ 0.02%</div>
+                </div>
+            </div>
+            <div class="report-kpi">
+                <div class="label">Total Incidents</div>
+                <div class="value-row">
+                    <div class="value">12</div>
+                    <div style="color:var(--accent-green); font-size:0.72rem;">↓ 4</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

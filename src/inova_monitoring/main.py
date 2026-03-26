@@ -262,10 +262,16 @@ async def read_root(request: Request):
     user = get_current_user(request)
     if not user:
         return RedirectResponse("/login")
+    section = request.query_params.get("section", "dashboard")
     return templates.TemplateResponse(
         request=request,
         name="index.html",
-        context={"title": "Inova Apps Monitoring", "user": user, "active_page": "dashboard"},
+        context={
+            "title": "Inova Apps Monitoring", 
+            "user": user, 
+            "active_page": "dashboard",
+            "section": section
+        },
     )
 
 
