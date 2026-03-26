@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: inova-monitoring
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: 'https://github.com/JZacharie/inova_monitoring.git'
+    targetRevision: HEAD
+    path: charts/inova-monitoring
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: inova-monitoring-prod
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
