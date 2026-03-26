@@ -47,6 +47,16 @@ async def read_root(request: Request) -> HTMLResponse:
     )
 
 
+@app.get("/users", response_class=HTMLResponse)
+async def read_users(request: Request) -> HTMLResponse:
+    """Render the user activity & profiling page."""
+    return templates.TemplateResponse(
+        request=request,
+        name="users.html",
+        context={"title": "User Activity & Profiling"},
+    )
+
+
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket) -> None:
     """
