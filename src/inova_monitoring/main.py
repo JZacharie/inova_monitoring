@@ -265,7 +265,7 @@ async def read_root(request: Request):
     return templates.TemplateResponse(
         request=request,
         name="index.html",
-        context={"title": "Inova Apps Monitoring", "user": user},
+        context={"title": "Inova Apps Monitoring", "user": user, "active_page": "dashboard"},
     )
 
 
@@ -278,7 +278,7 @@ async def read_users(request: Request):
     return templates.TemplateResponse(
         request=request,
         name="users.html",
-        context={"title": "User Activity & Profiling", "user": user},
+        context={"title": "User Activity & Profiling", "user": user, "active_page": "users"},
     )
 
 
@@ -291,7 +291,7 @@ async def read_reports(request: Request):
     return templates.TemplateResponse(
         request=request,
         name="reports.html",
-        context={"title": "Reports", "user": user},
+        context={"title": "Reports", "user": user, "active_page": "reports"},
     )
 
 
@@ -304,7 +304,7 @@ async def read_catalog(request: Request):
     return templates.TemplateResponse(
         request=request,
         name="catalog.html",
-        context={"title": "Service Catalog", "user": user},
+        context={"title": "Service Catalog", "user": user, "active_page": "catalog"},
     )
 
 
@@ -385,7 +385,7 @@ async def read_logs(request: Request):
     return templates.TemplateResponse(
         request=request,
         name="logs.html",
-        context={"title": "Logs", "user": user},
+        context={"title": "Logs", "user": user, "active_page": "logs"},
     )
 
 
