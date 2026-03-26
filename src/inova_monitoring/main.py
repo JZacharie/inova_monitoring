@@ -24,6 +24,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from .config import settings
 from .database import execute_query
+from .prometheus import metrics_fetcher
 from .messages import (
     AnalyticsRequest,
     ErrorPayload,
@@ -304,6 +305,17 @@ async def read_logs(request: Request):
         name="logs.html",
         context={"title": "Logs", "user": user},
     )
+
+
+@app.get("/api/metrics")
+async def get_metrics(request: Request):
+    """Fetch and return Prometheus metrics for allowed endpoints."""
+    user = get_current_user(request)
+    if not user:
+        return {"detail": "Unauthorized"}
+    
+    metrics = await metrics_fetcher.fetch_metrics()
+    return metrics
 
 
 @app.websocket("/ws")

@@ -16,6 +16,10 @@ class Settings(BaseSettings):
 
     # Prometheus Configuration
     prometheus_url: str = Field(default="http://localhost:9090", alias="PROMETHEUS_URL")
+    prometheus_endpoints: str = Field(
+        default="[]", alias="PROMETHEUS_ENDPOINTS"
+    )  # JSON string of endpoints
+    metrics_refresh_interval: int = Field(default=30, alias="METRICS_REFRESH_INTERVAL")
 
     # SSO Configuration
     auth_methods_allowed: str = Field(
