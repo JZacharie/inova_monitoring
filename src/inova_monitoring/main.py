@@ -88,6 +88,12 @@ templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
 
 
+@app.get("/health")
+async def health_check():
+    """Simple health check endpoint for Kubernetes probes."""
+    return {"status": "online", "version": "0.1.0"}
+
+
 def get_current_user(request: Request) -> Any:
     """Helper to get authentication user from session."""
     return request.session.get("user")
